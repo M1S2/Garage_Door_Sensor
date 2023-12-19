@@ -31,22 +31,25 @@ void messageSent(uint8_t *macAddr, uint8_t status)
   if(status == 0)
   {
     Serial.println("Success");
+    digitalWrite(LED_BUILTIN, LOW);
   }
   else
   {
     Serial.println("Error");
+    digitalWrite(LED_BUILTIN, HIGH);
   }
 }
 
 void setup()
 {
   pinMode(DOOR_SWITCH_PIN, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
-
-  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
   
   if (esp_now_init() == 0)
   {
@@ -73,5 +76,5 @@ void loop()
 
   // send the sensor status to the indoor station
   esp_now_send(indoor_station_mac, (uint8_t *) &sensor_message, sizeof(sensor_message));
-  delay(5000);
+  delay(2000);
 }

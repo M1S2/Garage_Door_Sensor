@@ -52,19 +52,21 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   Serial.println(sensor_message.pinState);
   Serial.print("VCC: ");
   Serial.println(sensor_message.voltageVcc);
+  Serial.printf("Channel=%d", WiFi.channel());
   Serial.println();
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void setup()
 {
   Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
 
+  WiFi.mode(WIFI_STA);
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
+  WiFi.disconnect();
 
-  // delay(1000); // uncomment if your serial monitor is empty
-  WiFi.mode(WIFI_STA);
-    
   if (esp_now_init() == 0) 
   {
     Serial.println("ESPNow Init success");
@@ -75,6 +77,7 @@ void setup()
     return;
   }
 
+  digitalWrite(LED_BUILTIN, HIGH);
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
 }
