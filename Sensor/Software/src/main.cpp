@@ -11,7 +11,8 @@
 #include <ESP8266WiFi.h>
 #include "addresses.h"
 
-#define DOOR_SWITCH_PIN    14    // GPIO 14 is D5 (https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
+#define DOOR_SWITCH_PIN     14    // GPIO 14 is D5 (https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
+#define MAX_SEND_RETRIES    10
 
 ADC_MODE(ADC_VCC);
 
@@ -24,19 +25,39 @@ typedef struct message
 } message_t;
 message_t sensor_message; 
 
-// This method can be omited after some testing
+bool messageSentReady;
+bool messageSentSuccessful;
+
 void messageSent(uint8_t *macAddr, uint8_t status)
 {
-  Serial.print("Send status: ");
-  if(status == 0)
+  messageSentSuccessful = (status == 0);
+  messageSentReady = true;
+}
+
+// send the sensor status to the indoor station and repeat MAX_SEND_RETRIES times until the sending was successful
+void sendSensorData()
+{
+  int loop_cnt = 0;
+  do
   {
-    Serial.println("Success");
-    digitalWrite(LED_BUILTIN, LOW);
+    loop_cnt++;
+    //Serial.printf("Sender loop %d: ", loop_cnt);
+    messageSentReady = false;
+    sensor_message.voltageVcc = ESP.getVcc() / 1000.00;
+    sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
+    esp_now_send(indoor_station_mac, (uint8_t *) &sensor_message, sizeof(sensor_message));
+    while(messageSentReady == false) { delay(1); /* wait here. */ }
+  }while(messageSentSuccessful == false && loop_cnt < MAX_SEND_RETRIES);
+
+  if(loop_cnt == MAX_SEND_RETRIES)
+  {
+    Serial.printf("Maximum number of send retries reached (%d)\n", MAX_SEND_RETRIES);
+    digitalWrite(LED_BUILTIN, HIGH);      // LED off
   }
   else
   {
-    Serial.println("Error");
-    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.printf("Send Success after %d loop(s)\n", loop_cnt);
+    digitalWrite(LED_BUILTIN, LOW);       // LED on
   }
 }
 
@@ -44,6 +65,7 @@ void setup()
 {
   pinMode(DOOR_SWITCH_PIN, INPUT_PULLUP);
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);      // LED off
 
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
@@ -71,10 +93,6 @@ void setup()
  
 void loop()
 {
-  sensor_message.voltageVcc = ESP.getVcc() / 1000.00;
-  sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
-
-  // send the sensor status to the indoor station
-  esp_now_send(indoor_station_mac, (uint8_t *) &sensor_message, sizeof(sensor_message));
-  delay(2000);
+  sendSensorData();
+  delay(3000);
 }
