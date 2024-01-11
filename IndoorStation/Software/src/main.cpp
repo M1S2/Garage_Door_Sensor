@@ -38,7 +38,8 @@ typedef struct message
 {
   bool pinState;
   float voltageVcc;
-} message_t;
+  uint8_t numberSendLoops;
+} message_t; 
 
 message_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 
@@ -167,6 +168,8 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   Serial.println(sensor_message.pinState);
   Serial.print("VCC: ");
   Serial.println(sensor_message.voltageVcc);
+  Serial.print("NumberSendLoops: ");
+  Serial.println(sensor_message.numberSendLoops);
   Serial.printf("Channel=%d", WiFi.channel());
   Serial.println();
   digitalWrite(LED_BUILTIN, LOW);

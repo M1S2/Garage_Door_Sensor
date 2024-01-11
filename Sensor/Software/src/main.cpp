@@ -11,7 +11,8 @@
 #include <ESP8266WiFi.h>
 #include "addresses.h"
 
-#define DOOR_SWITCH_PIN     14    // GPIO 14 is D5 (https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
+#define MCU_LATCH_PIN       12    // GPIO 12
+#define DOOR_SWITCH_PIN     14    // GPIO 14
 #define MAX_SEND_RETRIES    10
 
 ADC_MODE(ADC_VCC);
@@ -22,6 +23,7 @@ typedef struct message
 {
   bool pinState;
   float voltageVcc;
+  uint8_t numberSendLoops;
 } message_t;
 message_t sensor_message; 
 
@@ -37,7 +39,7 @@ void messageSent(uint8_t *macAddr, uint8_t status)
 // send the sensor status to the indoor station and repeat MAX_SEND_RETRIES times until the sending was successful
 void sendSensorData()
 {
-  int loop_cnt = 0;
+  uint8_t loop_cnt = 0;
   do
   {
     loop_cnt++;
@@ -45,6 +47,7 @@ void sendSensorData()
     messageSentReady = false;
     sensor_message.voltageVcc = ESP.getVcc() / 1000.00;
     sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
+    sensor_message.numberSendLoops = loop_cnt;
     esp_now_send(indoor_station_mac, (uint8_t *) &sensor_message, sizeof(sensor_message));
     while(messageSentReady == false) { delay(1); /* wait here. */ }
   }while(messageSentSuccessful == false && loop_cnt < MAX_SEND_RETRIES);
@@ -63,6 +66,9 @@ void sendSensorData()
 
 void setup()
 {
+  pinMode(MCU_LATCH_PIN, OUTPUT);
+  digitalWrite(MCU_LATCH_PIN, HIGH);    // Enable latch pin to keep ESP on
+
   pinMode(DOOR_SWITCH_PIN, INPUT_PULLUP);
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);      // LED off
@@ -89,10 +95,15 @@ void setup()
     Serial.println("Failed to add peer");
   }
   esp_now_register_send_cb(messageSent);
+
+  sendSensorData();
+  delay(3000);
+
+  digitalWrite(MCU_LATCH_PIN, LOW);    // Disable latch pin to power off ESP
 }
  
 void loop()
 {
-  sendSensorData();
-  delay(3000);
+  //sendSensorData();
+  //delay(3000);
 }
