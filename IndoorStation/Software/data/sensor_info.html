@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Garage Door Sensor Status Sensor Info</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+		<link rel="icon" href="data:,">
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+	<body>
+		<div class="topnav">	
+			<a href="/index.html" id="Heading">Garage Door Sensor Status</a>
+			<div id="SubHeading">Sensor Info</div>
+			<!-- Navigation links (hidden by default) -->
+			<div id="menuElements">
+				<a href="/index.html">Dashboard</a>
+				<a href="/accu_chart.html">Accu Chart</a>
+			</div>
+			<!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
+			<a href="javascript:void(0);" class="icon" onclick="menuClicked()">
+				<i class="fa fa-bars"></i>
+			</a>
+		</div>
+		<div class="content">
+			<div class="cards">
+				<div class="card sensorinfo">
+					<h4>#1 - INFO</h4>
+					<p>MAC: <span id="mac1">?</span></p>
+					<p>SW Version: <span id="sw1">?</span></p>
+					<a href="/pairing?sensor=1"><button class="button">Start Pairing #1</button></a>
+				</div>
+				<div class="card sensorinfo">
+					<h4>#2 - INFO</h4>
+					<p>MAC: <span id="mac2">?</span></p>
+					<p>SW Version: <span id="sw2">?</span></p>
+					<a href="/pairing?sensor=2"><button class="button">Start Pairing #2</button></a>
+				</div>
+			</div>
+		
+			<div>
+				<p>Pairing is done for sensor #%PAIRING_SENSOR%</p>
+				<div class="progress-ring-indeterminate-outer-circle">
+					<div class="progress-ring-indeterminate-inner-circle">
+					</div>
+				</div>
+				</br>
+
+				<a href="/pairing?abort"><button class="button">Abort</button></a>
+			</div>
+			
+			<p>Indoor MAC-Adress is: %INDOOR_STATION_MAC%</p>
+		</div>
+	</body>
+	<script src="sensor_info.js"></script>
+	<script src="common.js"></script>
+</html>

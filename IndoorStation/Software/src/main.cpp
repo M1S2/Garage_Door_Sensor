@@ -14,7 +14,8 @@
 #include <espnow.h>
 #include <ESP8266WiFi.h>
 #include <Adafruit_NeoPixel.h>
-#include "ESPAsyncWebServer.h"
+#include <ESPAsyncWebServer.h>
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "addresses.h"
 
@@ -42,76 +43,6 @@ typedef struct message
 } message_t; 
 
 message_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
-
-// icons: https://fontawesome.com/search
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
-<head>
-<title>ESP-NOW DASHBOARD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-  <link rel="icon" href="data:,">
-  <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    p {  font-size: 1.2rem;}
-    body {  margin: 0;}
-    .topnav { overflow: hidden; background-color: #2f4468; color: white; font-size: 1.7rem; }
-    .content { padding: 20px; }
-    .card { background-color: white; box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5); }
-    .cards { max-width: 700px; margin: 0 auto; display: grid; grid-gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-    .reading { font-size: 2.8rem; }
-    .packet { color: #bebebe; }
-    .card.pinstate { color: #fd7e14; }
-    .card.voltage { color: #1b78e2; }
-  </style>
-</head>
-<body>
-  <div class="topnav">
-    <h3>ESP-NOW DASHBOARD</h3>
-  </div>
-  <div class="content">
-    <div class="cards">
-      <div class="card pinstate">
-        <h4><i class="fas fa-door-open"></i> #1 - STATE</h4><p><span class="reading" id="s0">?</span></p>
-      </div>
-      <div class="card voltage">
-        <h4><i class="fas fa-battery-half"></i> #1 - VOLTAGE</h4><p><span class="reading"><span id="v0">?</span> V</span></p>
-      </div>
-      <div class="card pinstate">
-        <h4><i class="fas fa-door-open"></i> #2 - STATE</h4><p><span class="reading" id="s1">?</span></p>
-      </div>
-      <div class="card voltage">
-        <h4><i class="fas fa-battery-half"></i> #2 - VOLTAGE</h4><p><span class="reading"><span id="v1"></span>? V</span></p>
-      </div>
-    </div>
-  </div>
-<script>
-if (!!window.EventSource) {
- var source = new EventSource('/events');
- 
- source.addEventListener('open', function(e) {
-  console.log("Events Connected");
- }, false);
- source.addEventListener('error', function(e) {
-  if (e.target.readyState != EventSource.OPEN) {
-    console.log("Events Disconnected");
-  }
- }, false);
- 
- source.addEventListener('message', function(e) {
-  console.log("message", e.data);
- }, false);
- 
- source.addEventListener('new_readings', function(e) {
-  console.log("new_readings", e.data);
-  var obj = JSON.parse(e.data);
-  document.getElementById("s"+obj.id).innerHTML = ((obj.pinState == true) ? 'Closed' : 'Open');
-  document.getElementById("v"+obj.id).innerHTML = obj.voltageVcc.toFixed(2);
- }, false);
-}
-</script>
-</body>
-</html>)rawliteral";
 
 void updateWebsiteForSensor(uint8_t sensor_id, message_t sensor_message)
 {
@@ -175,6 +106,66 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   digitalWrite(LED_BUILTIN, LOW);
 }
 
+void initWebserverFiles()
+{
+   // Route for root index.html
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/index.html", "text/html"); 
+  });
+  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/index.html", "text/html"); 
+  });
+
+  // Route for root accu_chart.html
+  server.on("/accu_chart.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/accu_chart.html", "text/html"); 
+  });
+
+  // Route for root sensor_info.html
+  server.on("/sensor_info.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/sensor_info.html", "text/html"); 
+  });
+
+  // Route for root style.css
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/style.css", "text/css"); 
+  });
+
+  // Route for root common.js
+  server.on("/common.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/common.js", "text/javascript"); 
+  });
+
+  // Route for root index.js
+  server.on("/index.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/index.js", "text/javascript"); 
+  });
+
+  // Route for root accu_chart.js
+  server.on("/accu_chart.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/accu_chart.js", "text/javascript"); 
+  });
+
+  // Route for root sensor_info.js
+  server.on("/sensor_info.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/sensor_info.js", "text/javascript"); 
+  });
+
+  server.onNotFound([](AsyncWebServerRequest *request)
+  {
+    request->send(404, "text/plain", "Not found");
+  });
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -183,6 +174,13 @@ void setup()
   leds.begin();
   leds.setBrightness(30);
   leds.show(); // Initialize all pixels to 'off'
+
+  // Begin LittleFS
+  if (!LittleFS.begin())
+  {
+    Serial.println("An Error has occurred while mounting LittleFS");
+    return;
+  }
 
   // Set the device as a Station and Soft Access Point simultaneously
   WiFi.mode(WIFI_AP_STA);
@@ -212,11 +210,7 @@ void setup()
     return;
   }
 
-  // configure webserver
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send_P(200, "text/html", index_html);
-  });
+  initWebserverFiles();
 
   // events 
   events.onConnect([](AsyncEventSourceClient *client)
