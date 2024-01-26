@@ -10,6 +10,7 @@
 // https://wolles-elektronikkiste.de/esp-now#multi_transm_1_recv  (Ein Transmitter, ein Receiver – Advanced (ESP32))
 // https://randomnerdtutorials.com/esp-now-auto-pairing-esp32-esp8266/
 
+
 #include <Arduino.h>
 #include <espnow.h>
 #include <ESP8266WiFi.h>
@@ -18,16 +19,14 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "addresses.h"
+#include "wifimanager.h"
 
-AsyncWebServer server(80);
 AsyncEventSource events("/events");
 
 // https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8
 #define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])
 
 uint8_t sensor_macs[][6] = SENSOR_MACS;
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
 
 #define NUM_LEDS                3                         // Number of WS2812B leds
 #define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
@@ -113,66 +112,6 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   digitalWrite(LED_BUILTIN, LOW);
 }
 
-void initWebserverFiles()
-{
-   // Route for root index.html
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.html", "text/html"); 
-  });
-  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.html", "text/html"); 
-  });
-
-  // Route for root accu_chart.html
-  server.on("/accu_chart.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/accu_chart.html", "text/html"); 
-  });
-
-  // Route for root sensor_info.html
-  server.on("/sensor_info.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/sensor_info.html", "text/html"); 
-  });
-
-  // Route for root style.css
-  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/style.css", "text/css"); 
-  });
-
-  // Route for root common.js
-  server.on("/common.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/common.js", "text/javascript"); 
-  });
-
-  // Route for root index.js
-  server.on("/index.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.js", "text/javascript"); 
-  });
-
-  // Route for root accu_chart.js
-  server.on("/accu_chart.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/accu_chart.js", "text/javascript"); 
-  });
-
-  // Route for root sensor_info.js
-  server.on("/sensor_info.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/sensor_info.js", "text/javascript"); 
-  });
-
-  server.onNotFound([](AsyncWebServerRequest *request)
-  {
-    request->send(404, "text/plain", "Not found");
-  });
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -192,23 +131,33 @@ void setup()
     return;
   }
 
-  // Set the device as a Station and Soft Access Point simultaneously
-  WiFi.mode(WIFI_AP_STA);
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
-  
-  WiFi.begin(ssid, password);
-  Serial.print("Setting as a Wi-Fi Station");
-  while (WiFi.status() != WL_CONNECTED)
+
+  if(WiFiBegin())
   {
-    delay(1000);
-    Serial.print(".");
+    Serial.println("");
+    Serial.print("Station IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("Wi-Fi Channel: ");
+    Serial.println(WiFi.channel());
   }
-  Serial.println("");
-  Serial.print("Station IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Wi-Fi Channel: ");
-  Serial.println(WiFi.channel());
+  else
+  {
+    Serial.println("WiFiBegin timed out.");
+  }
+
+#if false
+  // events 
+  events.onConnect([](AsyncEventSourceClient *client)
+  {
+    updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
+  });
+  server.addHandler(&events);
+  // start webserver
+  server.begin();
+#endif
+
 
   if (esp_now_init() == 0) 
   {
@@ -219,17 +168,6 @@ void setup()
     Serial.println("ESPNow Init fail");
     return;
   }
-
-  initWebserverFiles();
-
-  // events 
-  events.onConnect([](AsyncEventSourceClient *client)
-  {
-    updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
-  });
-  server.addHandler(&events);
-  // start webserver
-  server.begin();
 
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
@@ -246,6 +184,16 @@ void loop()
     lastEventTime = millis();
   }*/
 
+  if(configuration_AP_open)
+  {
+    leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
+    dnsServer.processNextRequest();
+  }
+  else
+  {
+    leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CONNECTED);
+  }
+
   for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
   {
     if(sensor_messages[i].pinState == LOW) // door is open
@@ -259,4 +207,14 @@ void loop()
   }
   leds.show();
   delay(500);
+
+  if(!wifiInit_inProgress && digitalRead(BTN_RESET_PIN) == LOW)   // button pressed
+  {
+    leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
+    leds.show();
+    clearWifiCredentials();
+    delay(1000);
+    ESP.restart();
+    //WiFiBegin();
+  }
 }

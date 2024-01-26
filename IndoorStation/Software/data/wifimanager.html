@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ESP Wi-Fi Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <div class="topnav">	
+      <a id="Heading">Garage Door Sensor Status</a>
+      <div id="SubHeading">Wi-Fi Manager</div>
+    </div>
+    <div class="content">
+      <form action="/" method="POST">
+        <label for="ssid">SSID</label>
+        <input type="text" id ="ssid" name="ssid" placeholder="SSID" required><br>
+        <!--<select type="text" id ="ssid" name="ssid" placeholder="SSID" required>
+          <option value="v1">Network1</option>
+          <option value="v2">Network2</option>
+          <option value="v3">Network3</option>
+        </select>-->
+        <label for="pass">Password</label>
+        <input type="password" id ="pass" name="pass" placeholder="Password" required><br>				
+        <input type ="submit" value ="Submit">
+      </form>
+    </div>
+  </body>
+</html>

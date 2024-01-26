@@ -166,6 +166,38 @@ https://semicolonspace.com/circle-progressbar-css/ */
     }
 }
 
+/* -----------------------------------------------------------------------------------------
+Style all input fields
+https://www.w3schools.com/howto/howto_js_password_validation.asp */
+input, select
+{
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #CCCCCC;
+	border-radius: 4px;
+	box-sizing: border-box;
+	margin-top: 6px;
+	margin-bottom: 16px;
+}
+
+/* Style the submit button */
+input[type=submit] 
+{
+	background-color: #04AA6D;
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	font-size: 20px;
+	cursor: pointer;
+}
+
+/* Add a grey background color on mouse-over */
+input[type=submit]:hover 
+{
+	background-color: #DDDDDD;
+	color: #000000;
+}
+
 /* Slider */
 /*
 .switch 
