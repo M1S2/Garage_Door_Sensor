@@ -29,10 +29,17 @@ uint8_t sensor_macs[][6] = SENSOR_MACS;
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 
-#define NUM_LEDS  ARRAY_ELEMENT_COUNT(sensor_macs)        // Number of WS2812B leds
-#define LEDS_PIN  12                                      // The pin which is used to control the WS2812 leds
-#define COLOR_DOOR_OPEN   leds.Color(0, 255, 0)           // LED color used to indicate an open door
-#define COLOR_DOOR_CLOSED leds.Color(255, 0, 0)           // LED color used to indicate a closed door
+#define NUM_LEDS                3                         // Number of WS2812B leds
+#define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
+#define BTN_SHOW_STATUS_PIN     12                        // The pin which is used for the show status button
+#define BTN_WIFI_PIN            13                        // The pin which is used for the Wifi button
+#define BTN_RESET_PIN           16                        // The pin which is used for the reset button
+#define COLOR_DOOR_OPEN         leds.Color(0, 255, 0)     // LED color used to indicate an open door
+#define COLOR_DOOR_CLOSED       leds.Color(255, 0, 0)     // LED color used to indicate a closed door
+#define WIFI_LED_INDEX          2
+#define COLOR_WIFI_CONNECTED    leds.Color(0, 0, 255)     // LED color used to indicate that the Wifi is connected
+#define COLOR_WIFI_CFG_AP_OPEN  leds.Color(255, 255, 255) // LED color used to indicate that the Wifi configuration access point is running
+#define COLOR_WIFI_FAILED       leds.Color(255, 0, 0)     // LED color used to indicate that the Wifi connection failed
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LEDS_PIN, NEO_GRB + NEO_KHZ800);
 
 typedef struct message
@@ -170,6 +177,9 @@ void setup()
 {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(BTN_RESET_PIN, INPUT_PULLUP);
+  pinMode(BTN_SHOW_STATUS_PIN, INPUT_PULLUP);
+  pinMode(BTN_WIFI_PIN, INPUT_PULLUP);
 
   leds.begin();
   leds.setBrightness(30);
