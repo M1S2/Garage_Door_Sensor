@@ -3,9 +3,6 @@
 
 // Add a file called "addresses.h" beside this "main.cpp" file that contains a line for each sensor that should be used with the following content:
 // #define SENSOR1_MAC {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}     // 01:02:03:04:05:06, replace this with the MAC address of the sensor ESP of the first sensor
-// This file should also contain two defines for the Wifi SSID and password:
-// #define WIFI_SSID "<Enter SSID here>";
-// #define WIFI_PASSWORD "<Enter password here>";
 
 // https://wolles-elektronikkiste.de/esp-now#multi_transm_1_recv  (Ein Transmitter, ein Receiver – Advanced (ESP32))
 // https://randomnerdtutorials.com/esp-now-auto-pairing-esp32-esp8266/
@@ -17,17 +14,18 @@
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <ESPAsyncWiFiManager.h>
 #include "addresses.h"
 
 AsyncWebServer server(80);
 AsyncEventSource events("/events");
+DNSServer dns;
+AsyncWiFiManager wifiManager(&server,&dns);
 
 // https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8
 #define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])
 
 uint8_t sensor_macs[][6] = SENSOR_MACS;
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
 
 #define NUM_LEDS                3                         // Number of WS2812B leds
 #define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
@@ -41,6 +39,10 @@ const char* password = WIFI_PASSWORD;
 #define COLOR_WIFI_CFG_AP_OPEN  leds.Color(255, 255, 255) // LED color used to indicate that the Wifi configuration access point is running
 #define COLOR_WIFI_FAILED       leds.Color(255, 0, 0)     // LED color used to indicate that the Wifi connection failed
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LEDS_PIN, NEO_GRB + NEO_KHZ800);
+
+#define CONNECTION_TIMEOUT_MS   5000                      // Timeout in ms for connection to router
+#define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
+#define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
 typedef struct message
 {
@@ -173,6 +175,44 @@ void initWebserverFiles()
   });
 }
 
+void wifiEraseCredentials() 
+{
+  WiFi.disconnect(true);
+  ESP.eraseConfig();
+  Serial.println("WiFi credentials erased");
+}
+
+void wifiManagerSaveCB()
+{
+  WiFi.softAPdisconnect(true);
+  WiFi.persistent(false);
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.begin();
+
+  Serial.print("Station IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Wi-Fi Channel: ");
+  Serial.println(WiFi.channel());
+
+  initWebserverFiles();
+  // events 
+  events.onConnect([](AsyncEventSourceClient *client)
+  {
+    updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
+  });
+  server.addHandler(&events);
+  // start webserver
+  server.begin();
+
+  leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CONNECTED);
+}
+
+void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
+{
+  WiFi.persistent(true);
+  leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -192,23 +232,42 @@ void setup()
     return;
   }
 
-  // Set the device as a Station and Soft Access Point simultaneously
-  WiFi.mode(WIFI_AP_STA);
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
-  
-  WiFi.begin(ssid, password);
-  Serial.print("Setting as a Wi-Fi Station");
-  while (WiFi.status() != WL_CONNECTED)
+
+  wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
+  wifiManager.setAPCallback(wifiManagerAPOpenedCB);
+  wifiManager.setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
+
+  // Set the device as a Station and Soft Access Point simultaneously
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.begin();
+  boolean keepConnecting = true;
+  uint8_t connectionStatus;
+  unsigned long start = millis();
+  while (keepConnecting)
   {
-    delay(1000);
+    connectionStatus = WiFi.status();
+    if (millis() > start + CONNECTION_TIMEOUT_MS)
+    {
+      keepConnecting = false;
+      Serial.println("Connection timed out");
+    }
+    if (connectionStatus == WL_CONNECTED || connectionStatus == WL_CONNECT_FAILED)
+    {
+      keepConnecting = false;
+    }
+    delay(250);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("Station IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Wi-Fi Channel: ");
-  Serial.println(WiFi.channel());
+  if(connectionStatus != WL_CONNECTED)
+  {
+    wifiManager.startConfigPortalModeless(CONFIGURATION_AP_NAME, CONFIGURATION_AP_PW);
+  }
+  else
+  {
+    wifiManagerSaveCB();
+  }
 
   if (esp_now_init() == 0) 
   {
@@ -220,17 +279,6 @@ void setup()
     return;
   }
 
-  initWebserverFiles();
-
-  // events 
-  events.onConnect([](AsyncEventSourceClient *client)
-  {
-    updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
-  });
-  server.addHandler(&events);
-  // start webserver
-  server.begin();
-
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
@@ -238,13 +286,7 @@ void setup()
 
 void loop()
 {
-  /*static unsigned long lastEventTime = millis();
-  static const unsigned long EVENT_INTERVAL_MS = 5000;
-  if ((millis() - lastEventTime) > EVENT_INTERVAL_MS) 
-  {
-    //events.send("ping",NULL,millis());
-    lastEventTime = millis();
-  }*/
+  wifiManager.loop();
 
   for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
   {
@@ -259,4 +301,13 @@ void loop()
   }
   leds.show();
   delay(500);
+
+  /*if(digitalRead(BTN_RESET_PIN) == LOW)   // button pressed
+  {
+    leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
+    leds.show();
+    wifiEraseCredentials();
+    delay(1000);
+    ESP.restart();
+  }*/
 }
