@@ -15,6 +15,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWiFiManager.h>
+#include <Button2.h>
 #include "addresses.h"
 
 AsyncWebServer server(80);
@@ -27,11 +28,13 @@ AsyncWiFiManager wifiManager(&server,&dns);
 
 uint8_t sensor_macs[][6] = SENSOR_MACS;
 
-#define NUM_LEDS                3                         // Number of WS2812B leds
-#define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
 #define BTN_SHOW_STATUS_PIN     12                        // The pin which is used for the show status button
 #define BTN_WIFI_PIN            13                        // The pin which is used for the Wifi button
 #define BTN_RESET_PIN           16                        // The pin which is used for the reset button
+Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
+
+#define NUM_LEDS                3                         // Number of WS2812B leds
+#define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
 #define COLOR_DOOR_OPEN         leds.Color(0, 255, 0)     // LED color used to indicate an open door
 #define COLOR_DOOR_CLOSED       leds.Color(255, 0, 0)     // LED color used to indicate a closed door
 #define WIFI_LED_INDEX          2
@@ -213,13 +216,61 @@ void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
   leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
 }
 
+/**********************************************************************/
+void btnHandler_reset_click(Button2& btn)
+{
+  Serial.println("Reset Click");
+
+  /*leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
+  leds.show();
+  wifiEraseCredentials();
+  delay(1000);
+  ESP.restart();*/
+}
+
+void btnHandler_show_status_doubleClick(Button2& btn)
+{
+  Serial.println("Show Status double Click");
+}
+
+void btnHandler_show_status_click(Button2& btn)
+{
+  Serial.println("Show Status Click");
+}
+
+void btnHandler_show_status_longClick(Button2& btn)
+{
+  Serial.println("Show Status long Click");
+}
+
+void btnHandler_wifi_click(Button2& btn)
+{
+  Serial.println("Wifi Click");
+}
+/**********************************************************************/
+
 void setup()
 {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(BTN_RESET_PIN, INPUT_PULLUP);
-  pinMode(BTN_SHOW_STATUS_PIN, INPUT_PULLUP);
-  pinMode(BTN_WIFI_PIN, INPUT_PULLUP);
+
+  btn_reset.begin(BTN_RESET_PIN);   //INPUT_PULLUP
+  btn_reset.setDebounceTime(100);
+  btn_reset.setLongClickTime(500);
+  btn_reset.setDoubleClickTime(400);
+  btn_reset.setClickHandler(btnHandler_reset_click);
+  btn_show_status.begin(BTN_SHOW_STATUS_PIN);   //INPUT_PULLUP
+  btn_show_status.setDebounceTime(100);
+  btn_show_status.setLongClickTime(500);
+  btn_show_status.setDoubleClickTime(400);
+  btn_show_status.setClickHandler(btnHandler_show_status_click);
+  btn_show_status.setDoubleClickHandler(btnHandler_show_status_doubleClick);
+  btn_show_status.setLongClickDetectedHandler(btnHandler_show_status_longClick);
+  btn_wifi.begin(BTN_WIFI_PIN);   //INPUT_PULLUP
+  btn_wifi.setDebounceTime(100);
+  btn_wifi.setLongClickTime(500);
+  btn_wifi.setDoubleClickTime(400);
+  btn_wifi.setClickHandler(btnHandler_wifi_click);
 
   leds.begin();
   leds.setBrightness(30);
@@ -234,6 +285,7 @@ void setup()
 
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
+
 
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
@@ -269,6 +321,7 @@ void setup()
     wifiManagerSaveCB();
   }
 
+
   if (esp_now_init() == 0) 
   {
     Serial.println("ESPNow Init success");
@@ -287,6 +340,11 @@ void setup()
 void loop()
 {
   wifiManager.loop();
+  btn_reset.loop();
+  btn_show_status.loop();
+  btn_wifi.loop();
+
+  delay(10);
 
   for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
   {
@@ -300,14 +358,4 @@ void loop()
     }
   }
   leds.show();
-  delay(500);
-
-  /*if(digitalRead(BTN_RESET_PIN) == LOW)   // button pressed
-  {
-    leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
-    leds.show();
-    wifiEraseCredentials();
-    delay(1000);
-    ESP.restart();
-  }*/
 }
