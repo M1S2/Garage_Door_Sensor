@@ -35,6 +35,8 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 
 #define NUM_LEDS                3                         // Number of WS2812B leds
 #define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
+#define SENSOR1_LED_INDEX       0
+#define SENSOR2_LED_INDEX       1
 #define COLOR_DOOR_OPEN         leds.Color(0, 255, 0)     // LED color used to indicate an open door
 #define COLOR_DOOR_CLOSED       leds.Color(255, 0, 0)     // LED color used to indicate a closed door
 #define WIFI_LED_INDEX          2
@@ -42,6 +44,7 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define COLOR_WIFI_CFG_AP_OPEN  leds.Color(255, 255, 255) // LED color used to indicate that the Wifi configuration access point is running
 #define COLOR_WIFI_FAILED       leds.Color(255, 0, 0)     // LED color used to indicate that the Wifi connection failed
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LEDS_PIN, NEO_GRB + NEO_KHZ800);
+#define COLOR_OFF               leds.Color(0, 0, 0)       // LED color off
 
 #define CONNECTION_TIMEOUT_MS   5000                      // Timeout in ms for connection to router
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
@@ -55,6 +58,14 @@ typedef struct message
 } message_t; 
 
 message_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
+
+enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
+Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
+#define COLOR_SENSOR_PAIRING_1    leds.Color(255, 0, 0)     // First LED color for sensor pairing indication
+#define COLOR_SENSOR_PAIRING_2    leds.Color(0, 0, 255)     // Second LED color for sensor pairing indication
+unsigned long pairingColorChangeStartTimeMillis = 0;
+
+/**********************************************************************/
 
 void updateWebsiteForSensor(uint8_t sensor_id, message_t sensor_message)
 {
@@ -118,6 +129,57 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   digitalWrite(LED_BUILTIN, LOW);
 }
 
+/**********************************************************************/
+
+// sensorIndex = 0..1
+void sensorPairingStart(int sensorIndex)
+{
+  Serial.printf("sensorPairingStart (Index=%d)\n", sensorIndex);
+  switch(sensorIndex)
+  {
+    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; break;
+    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; break;
+    default: sensorPairingMode = PAIRING_MODE_NONE; break;
+  }
+}
+
+void sensorPairingStop()
+{
+  Serial.println("sensorPairingStop");
+  sensorPairingMode = PAIRING_MODE_NONE;
+}
+
+void sensorPairingMoveToNext()
+{
+  Serial.println("sensorPairingMoveToNext");
+  switch(sensorPairingMode)
+  {
+    case PAIRING_MODE_NONE: sensorPairingMode = PAIRING_MODE_SENSOR1; break;
+    case PAIRING_MODE_SENSOR1: sensorPairingMode = PAIRING_MODE_SENSOR2; break;
+    case PAIRING_MODE_SENSOR2: sensorPairingMode = PAIRING_MODE_NONE; break;
+  }
+}
+
+/**********************************************************************/
+
+String processor(const String& var)
+{
+  if(var == "PAIRING_SENSOR")
+  {
+      switch(sensorPairingMode)
+      {
+        case PAIRING_MODE_SENSOR1: return "#1";
+        case PAIRING_MODE_SENSOR2: return "#2";
+        default: return "NONE";
+      }
+  }
+  else if(var == "INDOOR_STATION_MAC")
+  {
+    return WiFi.macAddress();
+  }
+  return String();
+}
+
 void initWebserverFiles()
 {
    // Route for root index.html
@@ -139,7 +201,7 @@ void initWebserverFiles()
   // Route for root sensor_info.html
   server.on("/sensor_info.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_info.html", "text/html"); 
+    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
 
   // Route for root style.css
@@ -175,6 +237,22 @@ void initWebserverFiles()
   server.onNotFound([](AsyncWebServerRequest *request)
   {
     request->send(404, "text/plain", "Not found");
+  });
+
+  // Send a GET request to <ESP_IP>/pairing?sensor=<sensorIndex> or pairing?abort
+  server.on("/pairing", HTTP_GET, [] (AsyncWebServerRequest *request)
+  {
+    String inputMessage;
+    if (request->hasParam("abort"))
+    {
+      sensorPairingStop();
+    }
+    else if(request->hasParam("sensor"))
+    {
+      inputMessage = request->getParam("sensor")->value();
+      sensorPairingStart(inputMessage.toInt() - 1);
+    }
+    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
 }
 
@@ -228,9 +306,11 @@ void btnHandler_reset_click(Button2& btn)
   ESP.restart();*/
 }
 
+// Move to the next sensor pairing on double click on the show status button
 void btnHandler_show_status_doubleClick(Button2& btn)
 {
   Serial.println("Show Status double Click");
+  sensorPairingMoveToNext();
 }
 
 void btnHandler_show_status_click(Button2& btn)
@@ -238,9 +318,11 @@ void btnHandler_show_status_click(Button2& btn)
   Serial.println("Show Status Click");
 }
 
+// Stop the sensor pairing on long click on the show status button
 void btnHandler_show_status_longClick(Button2& btn)
 {
   Serial.println("Show Status long Click");
+  sensorPairingStop();
 }
 
 void btnHandler_wifi_click(Button2& btn)
@@ -335,6 +417,9 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
+
+  sensorPairingMode = PAIRING_MODE_NONE;
+  pairingColorChangeStartTimeMillis = 0;
 }
 
 void loop()
@@ -346,15 +431,39 @@ void loop()
 
   delay(10);
 
-  for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
+  leds.setPixelColor(SENSOR1_LED_INDEX, COLOR_OFF);
+  leds.setPixelColor(SENSOR2_LED_INDEX, COLOR_OFF);
+
+  if(sensorPairingMode == PAIRING_MODE_SENSOR1 || sensorPairingMode == PAIRING_MODE_SENSOR2)
   {
-    if(sensor_messages[i].pinState == LOW) // door is open
+    // do some pairing stuff
+
+    if(pairingColorChangeStartTimeMillis == 0) { pairingColorChangeStartTimeMillis = millis(); }
+    if(millis() - pairingColorChangeStartTimeMillis < 300)
     {
-      leds.setPixelColor(i, COLOR_DOOR_OPEN);
+      leds.setPixelColor(sensorPairingMode == PAIRING_MODE_SENSOR1 ? SENSOR1_LED_INDEX : SENSOR2_LED_INDEX, COLOR_SENSOR_PAIRING_1);
     }
-    else if(sensor_messages[i].pinState == HIGH) // door is closed
+    else if(millis() - pairingColorChangeStartTimeMillis < 600)
     {
-      leds.setPixelColor(i, COLOR_DOOR_CLOSED);
+      leds.setPixelColor(sensorPairingMode == PAIRING_MODE_SENSOR1 ? SENSOR1_LED_INDEX : SENSOR2_LED_INDEX, COLOR_SENSOR_PAIRING_2);
+    }
+    else
+    {
+      pairingColorChangeStartTimeMillis = millis();
+    }
+  }
+  else
+  {
+    for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
+    {
+      if(sensor_messages[i].pinState == LOW) // door is open
+      {
+        leds.setPixelColor(i, COLOR_DOOR_OPEN);
+      }
+      else if(sensor_messages[i].pinState == HIGH) // door is closed
+      {
+        leds.setPixelColor(i, COLOR_DOOR_CLOSED);
+      }
     }
   }
   leds.show();
