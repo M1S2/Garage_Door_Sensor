@@ -36,7 +36,7 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define SENSOR_PIN_STATE_OPEN   LOW                       // This pin state of the sensor is interpreted as open door
 #define NUM_SUPPORTED_SENSORS   2                         // The number of supported sensors
 
-#define CONNECTION_TIMEOUT_MS   5000                      // Timeout in ms for connection to router
+#define CONNECTION_TIMEOUT_MS   10000                     // Timeout in ms for connection to router
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
@@ -138,10 +138,23 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 /**********************************************************************/
 
+void updateWebsiteForSensorPairingStatus()
+{
+  // create a JSON document with the data and send it by event to the web page
+  StaticJsonDocument<1000> root;
+  String payload;
+  root["pairing_id"] = sensorPairingMode;
+  root["pairing_active"] = (sensorPairingMode != PAIRING_MODE_NONE);
+  serializeJson(root, payload);
+  Serial.printf("event send: %s\n", payload.c_str());
+  events.send(payload.c_str(), "new_sensor_pairing_status", millis());
+}
+
 void sensorPairingStop()
 {
   sensorPairingMode = PAIRING_MODE_NONE;
   updateLeds_sensorStatus();
+  updateWebsiteForSensorPairingStatus();
 }
 
 // sensorIndex = 0..1
@@ -149,8 +162,8 @@ void sensorPairingStart(int sensorIndex)
 {
   switch(sensorIndex)
   {
-    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; leds_sensorPairing(SENSOR1_LED_INDEX); break;
-    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; leds_sensorPairing(SENSOR2_LED_INDEX); break;
+    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; leds_sensorPairing(SENSOR1_LED_INDEX); updateWebsiteForSensorPairingStatus(); break;
+    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; leds_sensorPairing(SENSOR2_LED_INDEX); updateWebsiteForSensorPairingStatus(); break;
     default: sensorPairingStop(); break;
   }
 }
@@ -169,14 +182,18 @@ void sensorPairingMoveToNext()
 
 String processor(const String& var)
 {
-  if(var == "PAIRING_SENSOR")
+  if(var == "PAIRING_SENSOR_NUMBER")
   {
       switch(sensorPairingMode)
       {
-        case PAIRING_MODE_SENSOR1: return "#1";
-        case PAIRING_MODE_SENSOR2: return "#2";
-        default: return "NONE";
+        case PAIRING_MODE_SENSOR1: return "1";
+        case PAIRING_MODE_SENSOR2: return "2";
+        default: return "NONE";       // This will never be visible (hidden by the PAIRING_STATUS_DISPLAY_STYLE placeholder)
       }
+  }
+  else if(var == "PAIRING_STATUS_DISPLAY_STYLE")
+  {
+    return (sensorPairingMode == PAIRING_MODE_NONE) ? "style=\"display: none\"" : "style=\"display: block\"";
   }
   else if(var == "INDOOR_STATION_MAC")
   {
@@ -297,24 +314,22 @@ void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
 {
   WiFi.persistent(true);
   leds_wifiAPOpen();
+  manager->setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
 }
 
 /**********************************************************************/
 
-void btnHandler_reset_click(Button2& btn)
+void btnHandler_reset_longClick(Button2& btn)
 {
-  Serial.println("Reset Click");
-
-  /*leds_wifiFailed();
+  leds_wifiFailed();
   wifiEraseCredentials();
   delay(1000);
-  ESP.restart();*/
+  ESP.restart();
 }
 
 // Move to the next sensor pairing on double click on the show status button
 void btnHandler_show_status_doubleClick(Button2& btn)
 {
-  Serial.println("Show Status double Click");
   sensorPairingMoveToNext();
 }
 
@@ -326,7 +341,6 @@ void btnHandler_show_status_click(Button2& btn)
 // Stop the sensor pairing on long click on the show status button
 void btnHandler_show_status_longClick(Button2& btn)
 {
-  Serial.println("Show Status long Click");
   sensorPairingStop();
 }
 
@@ -343,9 +357,8 @@ void setup()
 
   btn_reset.begin(BTN_RESET_PIN);   //INPUT_PULLUP
   btn_reset.setDebounceTime(100);
-  btn_reset.setLongClickTime(500);
-  btn_reset.setDoubleClickTime(400);
-  btn_reset.setClickHandler(btnHandler_reset_click);
+  btn_reset.setLongClickTime(1500);
+  btn_reset.setLongClickDetectedHandler(btnHandler_reset_longClick);
   btn_show_status.begin(BTN_SHOW_STATUS_PIN);   //INPUT_PULLUP
   btn_show_status.setDebounceTime(100);
   btn_show_status.setLongClickTime(500);
@@ -376,7 +389,6 @@ void setup()
 
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
-  wifiManager.setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
 
   // Set the device as a Station and Soft Access Point simultaneously
   leds_wifiConnecting();
@@ -401,6 +413,7 @@ void setup()
   }
   if(connectionStatus != WL_CONNECTED)
   {
+    wifiManager.setConnectTimeout(1);
     wifiManager.startConfigPortalModeless(CONFIGURATION_AP_NAME, CONFIGURATION_AP_PW);
   }
   else

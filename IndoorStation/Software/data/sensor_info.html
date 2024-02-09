@@ -37,8 +37,8 @@
 				</div>
 			</div>
 		
-			<div>
-				<p>Pairing is done for sensor %PAIRING_SENSOR%</p>
+			<div id="pairing_status" %PAIRING_STATUS_DISPLAY_STYLE%>
+				<p><span>Pairing is done for sensor #</span><span id="pairing_sensor_number">%PAIRING_SENSOR_NUMBER%</span></p>
 				<div class="progress-ring-indeterminate-outer-circle">
 					<div class="progress-ring-indeterminate-inner-circle">
 					</div>
@@ -54,10 +54,3 @@
 	<script src="sensor_info.js"></script>
 	<script src="common.js"></script>
 </html>
-
-
-<!-- 
-server.on("/pairing"): 
-	with parameter "abort": 	abort pairing loop
-	without parameter "abort": 	start pairing loop for requested sensor (parameter "sensor")
--->
