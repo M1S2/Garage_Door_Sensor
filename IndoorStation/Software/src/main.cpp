@@ -10,12 +10,12 @@
 #include <Arduino.h>
 #include <espnow.h>
 #include <ESP8266WiFi.h>
-#include <Adafruit_NeoPixel.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWiFiManager.h>
 #include <Button2.h>
+#include "leds.h"
 #include "addresses.h"
 
 AsyncWebServer server(80);
@@ -33,18 +33,8 @@ uint8_t sensor_macs[][6] = SENSOR_MACS;
 #define BTN_RESET_PIN           16                        // The pin which is used for the reset button
 Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
 
-#define NUM_LEDS                3                         // Number of WS2812B leds
-#define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
-#define SENSOR1_LED_INDEX       0
-#define SENSOR2_LED_INDEX       1
-#define COLOR_DOOR_OPEN         leds.Color(0, 255, 0)     // LED color used to indicate an open door
-#define COLOR_DOOR_CLOSED       leds.Color(255, 0, 0)     // LED color used to indicate a closed door
-#define WIFI_LED_INDEX          2
-#define COLOR_WIFI_CONNECTED    leds.Color(0, 0, 255)     // LED color used to indicate that the Wifi is connected
-#define COLOR_WIFI_CFG_AP_OPEN  leds.Color(255, 255, 255) // LED color used to indicate that the Wifi configuration access point is running
-#define COLOR_WIFI_FAILED       leds.Color(255, 0, 0)     // LED color used to indicate that the Wifi connection failed
-Adafruit_NeoPixel leds = Adafruit_NeoPixel(NUM_LEDS, LEDS_PIN, NEO_GRB + NEO_KHZ800);
-#define COLOR_OFF               leds.Color(0, 0, 0)       // LED color off
+#define SENSOR_PIN_STATE_OPEN   LOW                       // This pin state of the sensor is interpreted as open door
+#define NUM_SUPPORTED_SENSORS   2                         // The number of supported sensors
 
 #define CONNECTION_TIMEOUT_MS   5000                      // Timeout in ms for connection to router
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
@@ -61,9 +51,22 @@ message_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 
 enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
 Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
-#define COLOR_SENSOR_PAIRING_1    leds.Color(255, 0, 0)     // First LED color for sensor pairing indication
-#define COLOR_SENSOR_PAIRING_2    leds.Color(0, 0, 255)     // Second LED color for sensor pairing indication
-unsigned long pairingColorChangeStartTimeMillis = 0;
+
+/**********************************************************************/
+
+void updateLeds_sensorStatus()
+{
+  for(uint8_t i = 0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
+  {
+    bool isOpen = (sensor_messages[i].pinState == SENSOR_PIN_STATE_OPEN);
+    leds_sensorStatus(i, isOpen);
+  }
+
+  for(int i = ARRAY_ELEMENT_COUNT(sensor_messages); i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    leds_singleOff(i);
+  }
+}
 
 /**********************************************************************/
 
@@ -109,6 +112,10 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
       Serial.printf("Data received from Sensor %d \n\r", sensor_id);
 
       updateWebsiteForSensor(sensor_id, sensor_message);
+      
+      bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
+      leds_sensorStatus(i, isOpen);
+
       break;  
     }
   }
@@ -131,32 +138,30 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 /**********************************************************************/
 
+void sensorPairingStop()
+{
+  sensorPairingMode = PAIRING_MODE_NONE;
+  updateLeds_sensorStatus();
+}
+
 // sensorIndex = 0..1
 void sensorPairingStart(int sensorIndex)
 {
-  Serial.printf("sensorPairingStart (Index=%d)\n", sensorIndex);
   switch(sensorIndex)
   {
-    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; break;
-    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; break;
-    default: sensorPairingMode = PAIRING_MODE_NONE; break;
+    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; leds_sensorPairing(SENSOR1_LED_INDEX); break;
+    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; leds_sensorPairing(SENSOR2_LED_INDEX); break;
+    default: sensorPairingStop(); break;
   }
-}
-
-void sensorPairingStop()
-{
-  Serial.println("sensorPairingStop");
-  sensorPairingMode = PAIRING_MODE_NONE;
 }
 
 void sensorPairingMoveToNext()
 {
-  Serial.println("sensorPairingMoveToNext");
   switch(sensorPairingMode)
   {
-    case PAIRING_MODE_NONE: sensorPairingMode = PAIRING_MODE_SENSOR1; break;
-    case PAIRING_MODE_SENSOR1: sensorPairingMode = PAIRING_MODE_SENSOR2; break;
-    case PAIRING_MODE_SENSOR2: sensorPairingMode = PAIRING_MODE_NONE; break;
+    case PAIRING_MODE_NONE: sensorPairingStart(PAIRING_MODE_SENSOR1); break;
+    case PAIRING_MODE_SENSOR1: sensorPairingStart(PAIRING_MODE_SENSOR2); break;
+    case PAIRING_MODE_SENSOR2: sensorPairingStop(); break;
   }
 }
 
@@ -285,22 +290,22 @@ void wifiManagerSaveCB()
   // start webserver
   server.begin();
 
-  leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CONNECTED);
+  leds_wifiConnected();
 }
 
 void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
 {
   WiFi.persistent(true);
-  leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
+  leds_wifiAPOpen();
 }
 
 /**********************************************************************/
+
 void btnHandler_reset_click(Button2& btn)
 {
   Serial.println("Reset Click");
 
-  /*leds.setPixelColor(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
-  leds.show();
+  /*leds_wifiFailed();
   wifiEraseCredentials();
   delay(1000);
   ESP.restart();*/
@@ -354,9 +359,10 @@ void setup()
   btn_wifi.setDoubleClickTime(400);
   btn_wifi.setClickHandler(btnHandler_wifi_click);
 
-  leds.begin();
+  leds.init();
   leds.setBrightness(30);
-  leds.show(); // Initialize all pixels to 'off'
+  leds_allOff();
+  leds.start();
 
   // Begin LittleFS
   if (!LittleFS.begin())
@@ -368,12 +374,12 @@ void setup()
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
 
-
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
   wifiManager.setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
 
   // Set the device as a Station and Soft Access Point simultaneously
+  leds_wifiConnecting();
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin();
   boolean keepConnecting = true;
@@ -391,8 +397,7 @@ void setup()
     {
       keepConnecting = false;
     }
-    delay(250);
-    Serial.print(".");
+    leds.service();
   }
   if(connectionStatus != WL_CONNECTED)
   {
@@ -402,7 +407,6 @@ void setup()
   {
     wifiManagerSaveCB();
   }
-
 
   if (esp_now_init() == 0) 
   {
@@ -418,8 +422,7 @@ void setup()
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
 
-  sensorPairingMode = PAIRING_MODE_NONE;
-  pairingColorChangeStartTimeMillis = 0;
+  sensorPairingStop();
 }
 
 void loop()
@@ -428,43 +431,5 @@ void loop()
   btn_reset.loop();
   btn_show_status.loop();
   btn_wifi.loop();
-
-  delay(10);
-
-  leds.setPixelColor(SENSOR1_LED_INDEX, COLOR_OFF);
-  leds.setPixelColor(SENSOR2_LED_INDEX, COLOR_OFF);
-
-  if(sensorPairingMode == PAIRING_MODE_SENSOR1 || sensorPairingMode == PAIRING_MODE_SENSOR2)
-  {
-    // do some pairing stuff
-
-    if(pairingColorChangeStartTimeMillis == 0) { pairingColorChangeStartTimeMillis = millis(); }
-    if(millis() - pairingColorChangeStartTimeMillis < 300)
-    {
-      leds.setPixelColor(sensorPairingMode == PAIRING_MODE_SENSOR1 ? SENSOR1_LED_INDEX : SENSOR2_LED_INDEX, COLOR_SENSOR_PAIRING_1);
-    }
-    else if(millis() - pairingColorChangeStartTimeMillis < 600)
-    {
-      leds.setPixelColor(sensorPairingMode == PAIRING_MODE_SENSOR1 ? SENSOR1_LED_INDEX : SENSOR2_LED_INDEX, COLOR_SENSOR_PAIRING_2);
-    }
-    else
-    {
-      pairingColorChangeStartTimeMillis = millis();
-    }
-  }
-  else
-  {
-    for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
-    {
-      if(sensor_messages[i].pinState == LOW) // door is open
-      {
-        leds.setPixelColor(i, COLOR_DOOR_OPEN);
-      }
-      else if(sensor_messages[i].pinState == HIGH) // door is closed
-      {
-        leds.setPixelColor(i, COLOR_DOOR_CLOSED);
-      }
-    }
-  }
-  leds.show();
+  leds.service();
 }

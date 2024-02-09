@@ -1,0 +1,83 @@
+#include "leds.h"
+
+WS2812FX leds = WS2812FX(NUM_LEDS, LEDS_PIN, NEO_GRB + NEO_KHZ800);
+
+void setLedStatic(uint8_t index, const uint32_t color)
+{
+    leds.setSegment(index, index, index, FX_MODE_STATIC, color);
+    leds.trigger();
+    leds.service();                     // update the segment and remove it directly (no need to update the whole time)
+    leds.removeActiveSegment(index);
+}
+
+/**********************************************************************/
+
+void leds_singleOff(uint8_t index)
+{
+    setLedStatic(index, COLOR_OFF);
+}
+
+void leds_allOff()
+{
+    leds_singleOff(SENSOR1_LED_INDEX);
+    leds_singleOff(SENSOR2_LED_INDEX);
+    leds_singleOff(WIFI_LED_INDEX);
+}
+
+/**********************************************************************/
+
+void leds_sensorStatus(uint8_t index, bool isOpen)
+{
+    if(isOpen)
+    {
+        setLedStatic(index, COLOR_DOOR_OPEN);
+    }
+    else
+    {
+        setLedStatic(index, COLOR_DOOR_CLOSED);
+    }
+}
+
+void leds_sensorPairing(uint8_t index)
+{
+    if(index == SENSOR1_LED_INDEX)
+    {
+        leds_singleOff(SENSOR2_LED_INDEX);
+    }
+    else if(index == SENSOR2_LED_INDEX)
+    {
+        leds_singleOff(SENSOR1_LED_INDEX);
+    }
+
+    leds.setSegment(index, index, index, FX_MODE_BLINK, COLORS(COLOR_PAIRING_1, COLOR_PAIRING_2), 800);
+    leds.addActiveSegment(index);
+}
+
+/**********************************************************************/
+
+void leds_wifiPairing()
+{
+    leds.setSegment(WIFI_LED_INDEX, WIFI_LED_INDEX, WIFI_LED_INDEX, FX_MODE_BLINK, COLORS(COLOR_PAIRING_1, COLOR_PAIRING_2), 800);
+    leds.addActiveSegment(WIFI_LED_INDEX);
+}
+
+void leds_wifiConnecting()
+{
+    leds.setSegment(WIFI_LED_INDEX, WIFI_LED_INDEX, WIFI_LED_INDEX, FX_MODE_FADE, COLORS(COLOR_WIFI_CONNECTED, COLOR_OFF), 1000);
+    leds.addActiveSegment(WIFI_LED_INDEX);
+}
+
+void leds_wifiConnected()
+{
+    setLedStatic(WIFI_LED_INDEX, COLOR_WIFI_CONNECTED);
+}
+
+void leds_wifiFailed()
+{
+    setLedStatic(WIFI_LED_INDEX, COLOR_WIFI_FAILED);
+}
+
+void leds_wifiAPOpen()
+{
+    setLedStatic(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
+}
