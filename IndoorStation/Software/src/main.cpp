@@ -27,6 +27,7 @@ AsyncWiFiManager wifiManager(&server,&dns);
 #define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])
 
 uint8_t sensor_macs[][6] = SENSOR_MACS;
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 #define BTN_SHOW_STATUS_PIN     12                        // The pin which is used for the show status button
 #define BTN_WIFI_PIN            13                        // The pin which is used for the Wifi button
@@ -40,17 +41,30 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
-typedef struct message
+enum MessageTypes { MSG_TYPE_DATA, MSG_TYPE_PAIRING };
+
+typedef struct message_sensor
 {
+  MessageTypes message_type;
   bool pinState;
   float voltageVcc;
   uint8_t numberSendLoops;
-} message_t; 
+} message_sensor_t;
 
-message_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
+typedef struct message_pairing
+{
+  MessageTypes message_type;
+  uint8_t sender_mac[6];
+} message_pairing_t;
+
+message_sensor_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 
 enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
 Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
+bool pairingMessageReceived = false;
+message_pairing_t pairingMessage;
+int last_pairing_broadcast_millis;
+#define PAIRING_BROADCAST_INTERVAL_MS   1000
 
 /**********************************************************************/
 
@@ -70,7 +84,7 @@ void updateLeds_sensorStatus()
 
 /**********************************************************************/
 
-void updateWebsiteForSensor(uint8_t sensor_id, message_t sensor_message)
+void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_t sensor_message)
 {
   // create a JSON document with the data and send it by event to the web page
   StaticJsonDocument<1000> root;
@@ -93,47 +107,60 @@ void updateWebsite()
 
 void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 {
-  message_t sensor_message; 
-  memcpy(&sensor_message, data, sizeof(sensor_message));
+  Serial.println("messageReceived");
 
-  Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);    
-  int sensor_id = -1;
-  for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
-  {  
-    if(mac_addr[0] == sensor_macs[i][0] && 
-        mac_addr[1] == sensor_macs[i][1] &&
-        mac_addr[2] == sensor_macs[i][2] &&
-        mac_addr[3] == sensor_macs[i][3] &&
-        mac_addr[4] == sensor_macs[i][4] &&
-        mac_addr[5] == sensor_macs[i][5])
-    {
-      sensor_id = i;
-      sensor_messages[i] = sensor_message;
-      Serial.printf("Data received from Sensor %d \n\r", sensor_id);
-
-      updateWebsiteForSensor(sensor_id, sensor_message);
-      
-      bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
-      leds_sensorStatus(i, isOpen);
-
-      break;  
-    }
-  }
-
-  if (sensor_id == -1)
+  if(data[0] == MSG_TYPE_DATA)
   {
-    Serial.println("Data received from unknown Sensor");
+    message_sensor_t sensor_message; 
+    memcpy(&sensor_message, data, sizeof(sensor_message));
+
+    Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);    
+    int sensor_id = -1;
+    for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
+    {  
+      if(mac_addr[0] == sensor_macs[i][0] && 
+          mac_addr[1] == sensor_macs[i][1] &&
+          mac_addr[2] == sensor_macs[i][2] &&
+          mac_addr[3] == sensor_macs[i][3] &&
+          mac_addr[4] == sensor_macs[i][4] &&
+          mac_addr[5] == sensor_macs[i][5])
+      {
+        sensor_id = i;
+        sensor_messages[i] = sensor_message;
+        Serial.printf("Data received from Sensor %d \n\r", sensor_id);
+
+        updateWebsiteForSensor(sensor_id, sensor_message);
+        
+        if(sensorPairingMode == PAIRING_MODE_NONE)
+        {
+          bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
+          leds_sensorStatus(i, isOpen);
+        }
+
+        break;  
+      }
+    }
+
+    if (sensor_id == -1)
+    {
+      Serial.println("Data received from unknown Sensor");
+    }
+    
+    Serial.print("PinState: ");
+    Serial.println(sensor_message.pinState);
+    Serial.print("VCC: ");
+    Serial.println(sensor_message.voltageVcc);
+    Serial.print("NumberSendLoops: ");
+    Serial.println(sensor_message.numberSendLoops);
+    Serial.printf("Channel=%d", WiFi.channel());
+    Serial.println();
+    digitalWrite(LED_BUILTIN, LOW);
   }
-  
-  Serial.print("PinState: ");
-  Serial.println(sensor_message.pinState);
-  Serial.print("VCC: ");
-  Serial.println(sensor_message.voltageVcc);
-  Serial.print("NumberSendLoops: ");
-  Serial.println(sensor_message.numberSendLoops);
-  Serial.printf("Channel=%d", WiFi.channel());
-  Serial.println();
-  digitalWrite(LED_BUILTIN, LOW);
+  else if(data[0] == MSG_TYPE_PAIRING)
+  {
+    memcpy(&pairingMessage, data, sizeof(pairingMessage));
+    pairingMessageReceived = true;
+  }
 }
 
 /**********************************************************************/
@@ -160,6 +187,8 @@ void sensorPairingStop()
 // sensorIndex = 0..1
 void sensorPairingStart(int sensorIndex)
 {
+  last_pairing_broadcast_millis = 0;
+  pairingMessageReceived = false;
   switch(sensorIndex)
   {
     case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; leds_sensorPairing(SENSOR1_LED_INDEX); updateWebsiteForSensorPairingStatus(); break;
@@ -350,6 +379,20 @@ void btnHandler_wifi_click(Button2& btn)
 }
 /**********************************************************************/
 
+
+void OnDataSent(uint8_t* macAddr, uint8_t status)
+{
+  if(status == 0)
+  {
+    Serial.println("Send successful");
+  }
+  else
+  {
+    Serial.println("Send failed");
+  }
+}
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -386,6 +429,8 @@ void setup()
 
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
+
+  Serial.printf("SDK Version=%s\n", ESP.getSdkVersion());
 
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
@@ -434,6 +479,12 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
+  esp_now_register_send_cb(OnDataSent);
+
+  if(esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, WiFi.channel(), NULL, 0) != 0)
+  {
+    Serial.println("Failed to add peer");
+  }
 
   sensorPairingStop();
 }
@@ -445,4 +496,29 @@ void loop()
   btn_show_status.loop();
   btn_wifi.loop();
   leds.service();
+
+  // sensor pairing is active
+  if(sensorPairingMode != PAIRING_MODE_NONE)
+  {
+    if(pairingMessageReceived)
+    {
+      pairingMessageReceived = false;
+      Serial.printf("Pairing Message received from MAC=%02X:%02X:%02X:%02X:%02X:%02X.\n", pairingMessage.sender_mac[0], pairingMessage.sender_mac[1], pairingMessage.sender_mac[2], pairingMessage.sender_mac[3], pairingMessage.sender_mac[4], pairingMessage.sender_mac[5]);
+
+      sensorPairingStop();
+    }
+    else if(millis() - last_pairing_broadcast_millis > PAIRING_BROADCAST_INTERVAL_MS)
+    {
+      Serial.println("Send pairing broadcast message");
+      last_pairing_broadcast_millis = millis();
+      message_pairing_t pairingBroadcast;
+      pairingBroadcast.message_type = MSG_TYPE_PAIRING;
+      
+      WiFi.macAddress(pairingMessage.sender_mac);   // read my own macAddress and insert it into the pairingMessage
+
+      Serial.printf("My MAC==%02X:%02X:%02X:%02X:%02X:%02X\n", pairingMessage.sender_mac[0], pairingMessage.sender_mac[1], pairingMessage.sender_mac[2], pairingMessage.sender_mac[3], pairingMessage.sender_mac[4], pairingMessage.sender_mac[5]);
+      
+      esp_now_send(broadcastAddress, (uint8_t *) &pairingBroadcast, sizeof(pairingBroadcast));
+    }
+  }
 }

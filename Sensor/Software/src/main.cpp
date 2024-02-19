@@ -6,6 +6,8 @@
 
 // https://wolles-elektronikkiste.de/esp-now#multi_transm_1_recv  (Ein Transmitter, ein Receiver – Advanced (ESP32))
 
+// https://randomnerdtutorials.com/esp-now-auto-pairing-esp32-esp8266/
+
 #include <Arduino.h>
 #include <espnow.h>
 #include <ESP8266WiFi.h>
@@ -22,17 +24,29 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 ADC_MODE(ADC_VCC);
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-typedef struct message
+enum MessageTypes { MSG_TYPE_DATA, MSG_TYPE_PAIRING };
+
+typedef struct message_sensor
 {
+  MessageTypes message_type;
   bool pinState;
   float voltageVcc;
   uint8_t numberSendLoops;
-} message_t;
-message_t sensor_message; 
+} message_sensor_t;
+
+typedef struct message_pairing
+{
+  MessageTypes message_type;
+  uint8_t sender_mac[6];
+} message_pairing_t;
 
 bool messageSentReady;
 bool messageSentSuccessful;
+
+bool pairingMessageReceived = false;
+message_pairing_t pairingMessage;
 
 void OnDataSent(uint8_t* macAddr, uint8_t status)
 {
@@ -42,7 +56,13 @@ void OnDataSent(uint8_t* macAddr, uint8_t status)
 
 void OnDataRecv(uint8_t* mac, uint8_t* incomingData, uint8_t len)
 {
-  
+  Serial.println("Data received");
+
+  if(incomingData[0] == MSG_TYPE_PAIRING)
+  {
+    memcpy(&pairingMessage, incomingData, sizeof(pairingMessage));
+    pairingMessageReceived = true;
+  }
 }
 
 /**
@@ -90,8 +110,10 @@ void initEspNow(uint8_t wifiChannel)
  */
 bool sendSensorData()
 {
-  sensor_message.voltageVcc = ESP.getVcc() / 1000.00;
-  sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
+  message_sensor_t message; 
+  message.message_type = MSG_TYPE_DATA;
+  message.voltageVcc = ESP.getVcc() / 1000.00;
+  message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
   
   for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)
   {
@@ -103,8 +125,8 @@ bool sendSensorData()
     {
       loop_cnt++;
       messageSentReady = false;
-      sensor_message.numberSendLoops = loop_cnt + wifiChannelIndex * MAX_SEND_RETRIES;
-      esp_now_send(indoor_station_mac, (uint8_t *) &sensor_message, sizeof(sensor_message));
+      message.numberSendLoops = loop_cnt + wifiChannelIndex * MAX_SEND_RETRIES;
+      esp_now_send(indoor_station_mac, (uint8_t *) &message, sizeof(message));
       while(messageSentReady == false) { delay(1); /* wait here. */ }
     }while(messageSentSuccessful == false && loop_cnt < MAX_SEND_RETRIES);
 
@@ -118,7 +140,7 @@ bool sendSensorData()
     {
       #ifdef DEBUG_OUTPUT
       Serial.printf("Send Success after %d loop(s) over channel %d\n", loop_cnt, wifiChannel);
-      Serial.printf("Total number of send tries = %d\n", sensor_message.numberSendLoops);
+      Serial.printf("Total number of send tries = %d\n", message.numberSendLoops);
       #endif
       return true;    // break the wifiChannel for loop and return true to signal send success
     }
@@ -148,9 +170,38 @@ void setup()
   delay(3000);
 
   digitalWrite(MCU_LATCH_PIN, LOW);    // Disable latch pin to power off ESP
+  
+  delay(5000);
+  pairingMessageReceived = false;
+  Serial.println("Waiting for a pairing message from the Indoor station.");
 }
  
+uint8_t LedVal = LOW;
+
 void loop()
 {
+  if(pairingMessageReceived == true)
+  {
+    if(LedVal == LOW)
+    {
+      LedVal = HIGH;
+    }
+    else
+    {
+      LedVal = LOW;
+    }
+    digitalWrite(LED_BUILTIN, LedVal);      // toggle LED
 
+    pairingMessageReceived = false;
+    Serial.printf("Pairing Message received from MAC=%02X:%02X:%02X:%02X:%02X:%02X.\n", pairingMessage.sender_mac[0], pairingMessage.sender_mac[1], pairingMessage.sender_mac[2], pairingMessage.sender_mac[3], pairingMessage.sender_mac[4], pairingMessage.sender_mac[5]);
+    //memcpy(&indoor_station_mac, pairingMessage.sender_mac, sizeof(indoor_station_mac));
+    // TBD: save MAC as indoor station MAC to EEPROM
+
+    pairingMessage.message_type = MSG_TYPE_PAIRING;
+    WiFi.macAddress(pairingMessage.sender_mac);   // read my own macAddress and insert it into the pairingMessage
+
+    Serial.printf("My MAC==%02X:%02X:%02X:%02X:%02X:%02X\n", pairingMessage.sender_mac[0], pairingMessage.sender_mac[1], pairingMessage.sender_mac[2], pairingMessage.sender_mac[3], pairingMessage.sender_mac[4], pairingMessage.sender_mac[5]);
+
+    esp_now_send(indoor_station_mac, (uint8_t *) &pairingMessage, sizeof(pairingMessage));
+  }
 }
