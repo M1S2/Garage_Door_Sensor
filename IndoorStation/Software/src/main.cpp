@@ -3,6 +3,7 @@
 
 // Add a file called "addresses.h" beside this "main.cpp" file that contains a line for each sensor that should be used with the following content:
 // #define SENSOR1_MAC {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}     // 01:02:03:04:05:06, replace this with the MAC address of the sensor ESP of the first sensor
+// #define SENSOR_MACS { SENSOR1_MAC }
 
 // https://wolles-elektronikkiste.de/esp-now#multi_transm_1_recv  (Ein Transmitter, ein Receiver – Advanced (ESP32))
 // https://randomnerdtutorials.com/esp-now-auto-pairing-esp32-esp8266/
@@ -15,6 +16,7 @@
 #include <ArduinoJson.h>
 #include <ESPAsyncWiFiManager.h>
 #include <Button2.h>
+#include <time.h>
 #include "leds.h"
 #include "addresses.h"
 
@@ -40,6 +42,14 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
+// Configuration of NTP
+// https://werner.rothschopf.net/201802_arduino_esp8266_ntp.htm
+// https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+#define TIME_NTP_SERVER "de.pool.ntp.org"
+#define TIME_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
+bool isTimeValid = false;       // This flag is set to true the first the the NTP server is accessed
+void showTime();
+
 // Packing of this structure reduces the size to 4 bytes
 PACK_STRUCT_BEGIN
 typedef struct message_sensor
@@ -49,6 +59,10 @@ typedef struct message_sensor
   PACK_STRUCT_FLD_8(uint8_t numberSendLoops);
 }PACK_STRUCT_STRUCT message_sensor_t;
 PACK_STRUCT_END
+
+message_sensor_t sensor_message;
+bool sensor_message_received = false;
+uint8_t sensor_message_received_mac_addr[6];
 
 message_sensor_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 
@@ -96,47 +110,9 @@ void updateWebsite()
 
 void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 {
-  message_sensor_t sensor_message; 
   memcpy(&sensor_message, data, sizeof(sensor_message));
-
-  Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);    
-  int sensor_id = -1;
-  for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
-  {  
-    if(mac_addr[0] == sensor_macs[i][0] && 
-        mac_addr[1] == sensor_macs[i][1] &&
-        mac_addr[2] == sensor_macs[i][2] &&
-        mac_addr[3] == sensor_macs[i][3] &&
-        mac_addr[4] == sensor_macs[i][4] &&
-        mac_addr[5] == sensor_macs[i][5])
-    {
-      sensor_id = i;
-      sensor_messages[i] = sensor_message;
-      Serial.printf("Data received from Sensor %d \n\r", sensor_id);
-
-      updateWebsiteForSensor(sensor_id, sensor_message);
-      
-      bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
-      leds_sensorStatus(i, isOpen);
-
-      break;  
-    }
-  }
-
-  if (sensor_id == -1)
-  {
-    Serial.println("Data received from unknown Sensor");
-  }
-  
-  Serial.print("PinState: ");
-  Serial.println(sensor_message.pinState);
-  Serial.print("Battery Voltage mV: ");
-  Serial.println(sensor_message.batteryVoltage_mV);
-  Serial.print("NumberSendLoops: ");
-  Serial.println(sensor_message.numberSendLoops);
-  Serial.printf("Channel=%d", WiFi.channel());
-  Serial.println();
-  digitalWrite(LED_BUILTIN, LOW);
+  memcpy(&sensor_message_received_mac_addr, mac_addr, sizeof(sensor_message_received_mac_addr));
+  sensor_message_received = true;
 }
 
 /**********************************************************************/
@@ -350,7 +326,64 @@ void btnHandler_show_status_longClick(Button2& btn)
 void btnHandler_wifi_click(Button2& btn)
 {
   Serial.println("Wifi Click");
+
+  showTime();
 }
+
+/**********************************************************************/
+
+void showTime() 
+{
+  if(!isTimeValid)
+  {
+    Serial.println("Time wasn't synchronised yet.");
+  }
+  else
+  {
+    time_t now;                       // this are the seconds since Epoch (1970) - UTC
+    tm tm;                            // the structure tm holds time information in a more convenient way
+
+    time(&now);                       // read the current time
+    localtime_r(&now, &tm);           // update the structure tm with the current time
+    Serial.print("year:");
+    Serial.print(tm.tm_year + 1900);  // years since 1900
+    Serial.print("\tmonth:");
+    Serial.print(tm.tm_mon + 1);      // January = 0 (!)
+    Serial.print("\tday:");
+    Serial.print(tm.tm_mday);         // day of month
+    Serial.print("\thour:");
+    Serial.print(tm.tm_hour);         // hours since midnight  0-23
+    Serial.print("\tmin:");
+    Serial.print(tm.tm_min);          // minutes after the hour  0-59
+    Serial.print("\tsec:");
+    Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
+    Serial.print("\twday");
+    Serial.print(tm.tm_wday);         // days since Sunday 0-6
+    if (tm.tm_isdst == 1)             // Daylight Saving Time flag
+    {
+      Serial.print("\tDST");
+    }
+    else
+    {
+      Serial.print("\tstandard");
+    }
+    Serial.println();
+  }
+}
+
+// Adjust the update interval of the NTP server
+uint32_t sntp_update_delay_MS_rfc_not_less_than_15000 ()
+{
+  return 1 * 60 * 60 * 1000UL; // 1 hour
+}
+
+// Callback that is called, when the NTP server was reached
+// https://www.weigu.lu/microcontroller/tips_tricks/esp_NTP_tips_tricks/index.html
+void time_is_set(bool from_sntp) 
+{  
+  isTimeValid = true;
+}
+
 /**********************************************************************/
 
 void setup()
@@ -389,6 +422,9 @@ void setup()
 
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
+
+  configTime(TIME_TZ, TIME_NTP_SERVER);
+  settimeofday_cb(time_is_set); // ! optional  callback function to check
 
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
@@ -448,4 +484,45 @@ void loop()
   btn_show_status.loop();
   btn_wifi.loop();
   leds.service();
+
+  if(sensor_message_received)
+  {
+    sensor_message_received = false;
+
+    Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", sensor_message_received_mac_addr[0], sensor_message_received_mac_addr[1], sensor_message_received_mac_addr[2], sensor_message_received_mac_addr[3], sensor_message_received_mac_addr[4], sensor_message_received_mac_addr[5]);    
+    int sensor_id = -1;
+    for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
+    {  
+      if(sensor_message_received_mac_addr[0] == sensor_macs[i][0] && 
+          sensor_message_received_mac_addr[1] == sensor_macs[i][1] &&
+          sensor_message_received_mac_addr[2] == sensor_macs[i][2] &&
+          sensor_message_received_mac_addr[3] == sensor_macs[i][3] &&
+          sensor_message_received_mac_addr[4] == sensor_macs[i][4] &&
+          sensor_message_received_mac_addr[5] == sensor_macs[i][5])
+      {
+        sensor_id = i;
+        sensor_messages[i] = sensor_message;
+        Serial.printf("Data received from Sensor %d \n\r", sensor_id);
+
+        updateWebsiteForSensor(sensor_id, sensor_message);
+        
+        bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
+        leds_sensorStatus(i, isOpen);
+
+        break;  
+      }
+    }
+
+    if (sensor_id == -1)
+    {
+      Serial.println("Data received from unknown Sensor");
+    }
+    
+    Serial.print("PinState: ");
+    Serial.println(sensor_message.pinState);
+    Serial.print("Battery Voltage mV: ");
+    Serial.println(sensor_message.batteryVoltage_mV);
+    Serial.print("NumberSendLoops: ");
+    Serial.println(sensor_message.numberSendLoops);
+  }
 }
