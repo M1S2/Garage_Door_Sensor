@@ -11,25 +11,26 @@
 #include <ESP8266WiFi.h>
 #include "addresses.h"
 
-#define MCU_LATCH_PIN       12    // GPIO 12
-#define DOOR_SWITCH_PIN     14    // GPIO 14
+#define MCU_LATCH_PIN       12      // GPIO 12
+#define DOOR_SWITCH_PIN     14      // GPIO 14
 #define MAX_SEND_RETRIES    10
-#define MAX_WIFI_CHANNELS   13    // 13 in Europe, 11 for North America (adapt the following list accordingly)
+#define MAX_WIFI_CHANNELS   13      // 13 in Europe, 11 for North America (adapt the following list accordingly)
 uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13};      // First try to use the channels 1, 6 and 11 to send (these are the most assigned ones by routers)
 
-#define DEBUG_OUTPUT              // enable this define to output debugging output on the serial. If this is disabled, no serial output is used at all (to save power)
+#define ADC_RESISTOR_R8     390.0f  // Resistor value in kOhm, from the battery voltage to the ADC input
+#define ADC_RESISTOR_R9     100.0f  // Resistor value in kOhm, from the ADC input to GND
 
-ADC_MODE(ADC_VCC);
+#define DEBUG_OUTPUT                // enable this define to output debugging output on the serial. If this is disabled, no serial output is used at all (to save power)
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
 
-typedef struct message
+typedef struct message_sensor
 {
   bool pinState;
-  float voltageVcc;
+  float batteryVoltage_V;
   uint8_t numberSendLoops;
-} message_t;
-message_t sensor_message; 
+} message_sensor_t;
+message_sensor_t sensor_message; 
 
 bool messageSentReady;
 bool messageSentSuccessful;
@@ -85,12 +86,29 @@ void initEspNow(uint8_t wifiChannel)
 }
 
 /**
+ * Get the battery voltage by measuring the ADC value and scaling it by the resistor divider.
+ * ADC_RESISTOR_R8 is from the battery voltage to the ADC input.
+ * ADC_RESISTOR_R9 is from the ADC input to GND.
+ */
+float getBatteryVoltage()
+{
+  int adcReadVal = analogRead(A0);
+  float adcVoltage_V = adcReadVal / 1023.0f;
+  float batteryVoltage_V = adcVoltage_V * ((ADC_RESISTOR_R8 + ADC_RESISTOR_R9) / ADC_RESISTOR_R9);
+
+  #ifdef DEBUG_OUTPUT
+  Serial.printf("ADC value=%d, ADC Voltage=%f V, Battery Voltage=%f V\n", adcReadVal, adcVoltage_V, batteryVoltage_V);
+  #endif
+  return batteryVoltage_V;
+}
+
+/**
  * Send the sensor status to the indoor station and repeat MAX_SEND_RETRIES times until the sending was successful. Also loop all channels when not successful.
  * @return return true if send success; otherwise false
  */
 bool sendSensorData()
 {
-  sensor_message.voltageVcc = ESP.getVcc() / 1000.00;
+  sensor_message.batteryVoltage_V = getBatteryVoltage();
   sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
   
   for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)

@@ -25,6 +25,6 @@ if (!!window.EventSource)
 		console.log("new_readings", e.data);
 		var obj = JSON.parse(e.data);
 		document.getElementById("s"+obj.id).innerHTML = ((obj.pinState == true) ? 'Closed' : 'Open');
-		document.getElementById("v"+obj.id).innerHTML = obj.voltageVcc.toFixed(2);
+		document.getElementById("v"+obj.id).innerHTML = obj.batteryVoltage_V.toFixed(2);
 	}, false);
 }
