@@ -40,12 +40,15 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
+// Packing of this structure reduces the size to 4 bytes
+PACK_STRUCT_BEGIN
 typedef struct message_sensor
 {
-  bool pinState;
-  float batteryVoltage_V;
-  uint8_t numberSendLoops;
-} message_sensor_t;
+  PACK_STRUCT_FIELD(bool pinState);
+  PACK_STRUCT_FIELD(uint16_t batteryVoltage_mV);
+  PACK_STRUCT_FLD_8(uint8_t numberSendLoops);
+}PACK_STRUCT_STRUCT message_sensor_t;
+PACK_STRUCT_END
 
 message_sensor_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 
@@ -76,7 +79,7 @@ void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_t sensor_message)
   StaticJsonDocument<1000> root;
   String payload;
   root["id"] = sensor_id;
-  root["batteryVoltage_V"] = sensor_message.batteryVoltage_V;
+  root["batteryVoltage_V"] = (sensor_message.batteryVoltage_mV / 1000.0f);
   root["pinState"] = sensor_message.pinState;
   serializeJson(root, payload);
   Serial.printf("event send: %s\n", payload.c_str());
@@ -127,8 +130,8 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   
   Serial.print("PinState: ");
   Serial.println(sensor_message.pinState);
-  Serial.print("Battery Voltage: ");
-  Serial.println(sensor_message.batteryVoltage_V);
+  Serial.print("Battery Voltage mV: ");
+  Serial.println(sensor_message.batteryVoltage_mV);
   Serial.print("NumberSendLoops: ");
   Serial.println(sensor_message.numberSendLoops);
   Serial.printf("Channel=%d", WiFi.channel());

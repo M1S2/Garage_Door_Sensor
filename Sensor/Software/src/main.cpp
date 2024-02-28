@@ -24,13 +24,17 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
 
+// Packing of this structure reduces the size to 4 bytes
+PACK_STRUCT_BEGIN
 typedef struct message_sensor
 {
-  bool pinState;
-  float batteryVoltage_V;
-  uint8_t numberSendLoops;
-} message_sensor_t;
-message_sensor_t sensor_message; 
+  PACK_STRUCT_FIELD(bool pinState);
+  PACK_STRUCT_FIELD(uint16_t batteryVoltage_mV);
+  PACK_STRUCT_FLD_8(uint8_t numberSendLoops);
+}PACK_STRUCT_STRUCT message_sensor_t;
+PACK_STRUCT_END
+
+message_sensor_t sensor_message;
 
 bool messageSentReady;
 bool messageSentSuccessful;
@@ -108,9 +112,9 @@ float getBatteryVoltage()
  */
 bool sendSensorData()
 {
-  sensor_message.batteryVoltage_V = getBatteryVoltage();
+  sensor_message.batteryVoltage_mV = getBatteryVoltage() * 1000;
   sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
-  
+
   for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)
   {
     uint8_t wifiChannel = wifi_channel_order[wifiChannelIndex];
