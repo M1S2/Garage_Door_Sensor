@@ -69,6 +69,10 @@ message_sensor_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
 enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
 Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
 
+// The event handlers are initialized in the setup()
+WiFiEventHandler wifiConnectHandler;
+WiFiEventHandler wifiDisconnectHandler;
+
 /**********************************************************************/
 
 void updateLeds_sensorStatus()
@@ -276,6 +280,10 @@ void wifiManagerSaveCB()
   Serial.print("Wi-Fi Channel: ");
   Serial.println(WiFi.channel());
 
+  // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
+
   initWebserverFiles();
   // events 
   events.onConnect([](AsyncEventSourceClient *client)
@@ -429,9 +437,21 @@ void setup()
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
 
-  // Set the device as a Station and Soft Access Point simultaneously
   leds_wifiConnecting();
-  WiFi.mode(WIFI_AP_STA);
+  
+  // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/ 
+  // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/generic-examples.html
+  wifiConnectHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP& event)
+  {
+    leds_wifiConnected();
+  });
+  wifiDisconnectHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& event)
+  {
+    // This function gets called cyclic as long as the Wifi is disconnected
+    leds_wifiFailed();
+  });
+
+  WiFi.mode(WIFI_AP_STA);         // Set the device as a Station and Soft Access Point simultaneously
   WiFi.begin();
   boolean keepConnecting = true;
   uint8_t connectionStatus;
