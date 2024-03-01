@@ -17,6 +17,7 @@
 #include <ESPAsyncWiFiManager.h>
 #include <Button2.h>
 #include <time.h>
+#include <Schedule.h>
 #include "leds.h"
 #include "addresses.h"
 
@@ -49,6 +50,7 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define TIME_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
 bool isTimeValid = false;       // This flag is set to true the first the the NTP server is accessed
 void showTime();
+void showTimeNow();
 
 // Packing of this structure reduces the size to 4 bytes
 PACK_STRUCT_BEGIN
@@ -60,11 +62,19 @@ typedef struct message_sensor
 }PACK_STRUCT_STRUCT message_sensor_t;
 PACK_STRUCT_END
 
+PACK_STRUCT_BEGIN
+typedef struct message_sensor_timestamped
+{
+  PACK_STRUCT_FIELD(message_sensor_t msg);
+  PACK_STRUCT_FIELD(time_t timestamp);
+}PACK_STRUCT_STRUCT message_sensor_timestamped_t;
+PACK_STRUCT_END
+
 message_sensor_t sensor_message;
 bool sensor_message_received = false;
 uint8_t sensor_message_received_mac_addr[6];
 
-message_sensor_t sensor_messages[ARRAY_ELEMENT_COUNT(sensor_macs)];
+message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
 
 enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
 Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
@@ -77,38 +87,44 @@ WiFiEventHandler wifiDisconnectHandler;
 
 void updateLeds_sensorStatus()
 {
-  for(uint8_t i = 0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
+  for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
   {
-    bool isOpen = (sensor_messages[i].pinState == SENSOR_PIN_STATE_OPEN);
-    leds_sensorStatus(i, isOpen);
-  }
-
-  for(int i = ARRAY_ELEMENT_COUNT(sensor_messages); i < NUM_SUPPORTED_SENSORS; i++)
-  {
-    leds_singleOff(i);
+    if(sensor_messages_latest[i].timestamp != -1)
+    {
+      bool isOpen = (sensor_messages_latest[i].msg.pinState == SENSOR_PIN_STATE_OPEN);
+      leds_sensorStatus(i, isOpen);
+    }
+    else
+    {
+      leds_singleOff(i);
+    }
   }
 }
 
 /**********************************************************************/
 
-void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_t sensor_message)
+void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
 {
-  // create a JSON document with the data and send it by event to the web page
-  StaticJsonDocument<1000> root;
-  String payload;
-  root["id"] = sensor_id;
-  root["batteryVoltage_V"] = (sensor_message.batteryVoltage_mV / 1000.0f);
-  root["pinState"] = sensor_message.pinState;
-  serializeJson(root, payload);
-  Serial.printf("event send: %s\n", payload.c_str());
-  events.send(payload.c_str(), "new_readings", millis());
+  if(sensor_message_timestamped.timestamp != -1)
+  {
+    // create a JSON document with the data and send it by event to the web page
+    StaticJsonDocument<1000> root;
+    String payload;
+    root["id"] = sensor_id;
+    root["batteryVoltage_V"] = (sensor_message_timestamped.msg.batteryVoltage_mV / 1000.0f);
+    root["pinState"] = sensor_message_timestamped.msg.pinState;
+    root["timestamp"] = sensor_message_timestamped.timestamp;
+    serializeJson(root, payload);
+    Serial.printf("event send: %s\n", payload.c_str());
+    events.send(payload.c_str(), "new_readings", millis());
+  }
 }
 
 void updateWebsite()
 {
-  for(uint8_t i=0; i < ARRAY_ELEMENT_COUNT(sensor_messages); i++)
+  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
   {
-    updateWebsiteForSensor(i, sensor_messages[i]);
+    updateWebsiteForSensor(i, sensor_messages_latest[i]);
   }
 }
 
@@ -304,6 +320,22 @@ void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
   manager->setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
 }
 
+void onWifiConnect(const WiFiEventStationModeGotIP& event) 
+{
+  // https://github.com/esp8266/Arduino/issues/5722
+  // The wifi callbacks execute in the SYS context, and you can't yield/delay in there.
+  // If you need to do that, I suggest to use the wifi callback to schedule another callback with your code that requires yield/delay.
+  // Scheduled functions execute as though they were called from the loop, I.e. in CONT context.
+  // Same applies to the onWifiDisconnect event
+  schedule_function(leds_wifiConnected);
+}
+
+void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) 
+{
+  // This function gets called cyclic as long as the Wifi is disconnected
+  schedule_function(leds_wifiFailed);
+}
+
 /**********************************************************************/
 
 void btnHandler_reset_longClick(Button2& btn)
@@ -322,7 +354,13 @@ void btnHandler_show_status_doubleClick(Button2& btn)
 
 void btnHandler_show_status_click(Button2& btn)
 {
-  Serial.println("Show Status Click");
+  Serial.println("Show Status Click (used to emulate sensor message for the first sensor for the moment)");
+
+  message_sensor_t emulated_message;
+  emulated_message.pinState = random(0,2) == 0 ? false : true;
+  emulated_message.batteryVoltage_mV = 3141 + random(0, 1000);
+  emulated_message.numberSendLoops = 42;
+  messageReceived((uint8_t*)&sensor_macs[0], (uint8_t*)&emulated_message, 0 /* len not used */);
 }
 
 // Stop the sensor pairing on long click on the show status button
@@ -333,14 +371,47 @@ void btnHandler_show_status_longClick(Button2& btn)
 
 void btnHandler_wifi_click(Button2& btn)
 {
-  Serial.println("Wifi Click");
+  Serial.println("Wifi Click (used to emulate sensor message for the second sensor for the moment)");
 
-  showTime();
+  message_sensor_t emulated_message;
+  emulated_message.pinState = random(0,2) == 0 ? false : true;
+  emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
+  emulated_message.numberSendLoops = 12;
+  messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
 }
 
 /**********************************************************************/
 
-void showTime() 
+void showTime(time_t time) 
+{
+  tm tm;                            // the structure tm holds time information in a more convenient way
+  localtime_r(&time, &tm);          // update the structure tm with the current time
+  Serial.print("year:");
+  Serial.print(tm.tm_year + 1900);  // years since 1900
+  Serial.print("\tmonth:");
+  Serial.print(tm.tm_mon + 1);      // January = 0 (!)
+  Serial.print("\tday:");
+  Serial.print(tm.tm_mday);         // day of month
+  Serial.print("\thour:");
+  Serial.print(tm.tm_hour);         // hours since midnight  0-23
+  Serial.print("\tmin:");
+  Serial.print(tm.tm_min);          // minutes after the hour  0-59
+  Serial.print("\tsec:");
+  Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
+  Serial.print("\twday");
+  Serial.print(tm.tm_wday);         // days since Sunday 0-6
+  if (tm.tm_isdst == 1)             // Daylight Saving Time flag
+  {
+    Serial.print("\tDST");
+  }
+  else
+  {
+    Serial.print("\tstandard");
+  }
+  Serial.println();
+}
+
+void showTimeNow() 
 {
   if(!isTimeValid)
   {
@@ -349,33 +420,8 @@ void showTime()
   else
   {
     time_t now;                       // this are the seconds since Epoch (1970) - UTC
-    tm tm;                            // the structure tm holds time information in a more convenient way
-
     time(&now);                       // read the current time
-    localtime_r(&now, &tm);           // update the structure tm with the current time
-    Serial.print("year:");
-    Serial.print(tm.tm_year + 1900);  // years since 1900
-    Serial.print("\tmonth:");
-    Serial.print(tm.tm_mon + 1);      // January = 0 (!)
-    Serial.print("\tday:");
-    Serial.print(tm.tm_mday);         // day of month
-    Serial.print("\thour:");
-    Serial.print(tm.tm_hour);         // hours since midnight  0-23
-    Serial.print("\tmin:");
-    Serial.print(tm.tm_min);          // minutes after the hour  0-59
-    Serial.print("\tsec:");
-    Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
-    Serial.print("\twday");
-    Serial.print(tm.tm_wday);         // days since Sunday 0-6
-    if (tm.tm_isdst == 1)             // Daylight Saving Time flag
-    {
-      Serial.print("\tDST");
-    }
-    else
-    {
-      Serial.print("\tstandard");
-    }
-    Serial.println();
+    showTime(now);
   }
 }
 
@@ -417,7 +463,7 @@ void setup()
   btn_wifi.setClickHandler(btnHandler_wifi_click);
 
   leds.init();
-  leds.setBrightness(30);
+  leds.setBrightness(20);
   leds_allOff();
   leds.start();
 
@@ -426,6 +472,12 @@ void setup()
   {
     Serial.println("An Error has occurred while mounting LittleFS");
     return;
+  }
+
+  // invalidate all last sensor messages
+  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    sensor_messages_latest[i].timestamp = -1;
   }
 
   Serial.print("My MAC-Address: ");
@@ -441,15 +493,8 @@ void setup()
   
   // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/ 
   // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/generic-examples.html
-  wifiConnectHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP& event)
-  {
-    leds_wifiConnected();
-  });
-  wifiDisconnectHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& event)
-  {
-    // This function gets called cyclic as long as the Wifi is disconnected
-    leds_wifiFailed();
-  });
+  wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
+  wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
 
   WiFi.mode(WIFI_AP_STA);         // Set the device as a Station and Soft Access Point simultaneously
   WiFi.begin();
@@ -521,10 +566,14 @@ void loop()
           sensor_message_received_mac_addr[5] == sensor_macs[i][5])
       {
         sensor_id = i;
-        sensor_messages[i] = sensor_message;
+        sensor_messages_latest[i].msg = sensor_message;
+        time_t now;
+        time(&now);
+        sensor_messages_latest[i].timestamp = now;
         Serial.printf("Data received from Sensor %d \n\r", sensor_id);
+        showTime(now);
 
-        updateWebsiteForSensor(sensor_id, sensor_message);
+        updateWebsiteForSensor(sensor_id, sensor_messages_latest[i]);
         
         bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
         leds_sensorStatus(i, isOpen);

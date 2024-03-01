@@ -78,6 +78,10 @@ body
 { 
 	padding: 20px; 
 }
+.timestamp 
+{ 
+	color: #999999; 
+}
 .card 
 { 
 	background-color: white; 
@@ -95,17 +99,13 @@ body
 { 
 	font-size: 2.8rem; 
 }
-.card.pinstate 
+.card.sensorinfo1
 { 
 	color: #FD7E14; 
 }
-.card.voltage 
+.card.sensorinfo2
 { 
 	color: #1B78E2; 
-}
-.card.sensorinfo
-{ 
-	color: #04AA6D; 
 }
 	
 /* -----------------------------------------------------------------------------------------

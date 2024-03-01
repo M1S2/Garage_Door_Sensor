@@ -26,5 +26,6 @@ if (!!window.EventSource)
 		var obj = JSON.parse(e.data);
 		document.getElementById("s"+obj.id).innerHTML = ((obj.pinState == true) ? 'Closed' : 'Open');
 		document.getElementById("v"+obj.id).innerHTML = obj.batteryVoltage_V.toFixed(2);
+		document.getElementById("t"+obj.id).innerHTML = new Date(obj.timestamp * 1000).toLocaleString();
 	}, false);
 }
