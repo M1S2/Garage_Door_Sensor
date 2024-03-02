@@ -16,10 +16,11 @@
 #include <ArduinoJson.h>
 #include <ESPAsyncWiFiManager.h>
 #include <Button2.h>
-#include <time.h>
 #include <Schedule.h>
 #include "leds.h"
 #include "battery.h"
+#include "timeHandling.h"
+#include "sensorPairing.h"
 #include "addresses.h"
 
 AsyncWebServer server(80);
@@ -44,15 +45,6 @@ Button2 btn_show_status, btn_wifi, btn_reset;             // create button objec
 #define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
-// Configuration of NTP
-// https://werner.rothschopf.net/201802_arduino_esp8266_ntp.htm
-// https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-#define TIME_NTP_SERVER "de.pool.ntp.org"
-#define TIME_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
-bool isTimeValid = false;       // This flag is set to true the first the the NTP server is accessed
-void showTime();
-void showTimeNow();
-
 // Packing of this structure reduces the size to 4 bytes
 PACK_STRUCT_BEGIN
 typedef struct message_sensor
@@ -76,9 +68,6 @@ bool sensor_message_received = false;
 uint8_t sensor_message_received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
-
-enum Sensor_Pairing_Modes { PAIRING_MODE_SENSOR1, PAIRING_MODE_SENSOR2, PAIRING_MODE_NONE };
-Sensor_Pairing_Modes sensorPairingMode = PAIRING_MODE_NONE;
 
 // The event handlers are initialized in the setup()
 WiFiEventHandler wifiConnectHandler;
@@ -135,48 +124,6 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
   memcpy(&sensor_message, data, sizeof(sensor_message));
   memcpy(&sensor_message_received_mac_addr, mac_addr, sizeof(sensor_message_received_mac_addr));
   sensor_message_received = true;
-}
-
-/**********************************************************************/
-
-void updateWebsiteForSensorPairingStatus()
-{
-  // create a JSON document with the data and send it by event to the web page
-  StaticJsonDocument<1000> root;
-  String payload;
-  root["pairing_id"] = sensorPairingMode;
-  root["pairing_active"] = (sensorPairingMode != PAIRING_MODE_NONE);
-  serializeJson(root, payload);
-  Serial.printf("event send: %s\n", payload.c_str());
-  events.send(payload.c_str(), "new_sensor_pairing_status", millis());
-}
-
-void sensorPairingStop()
-{
-  sensorPairingMode = PAIRING_MODE_NONE;
-  updateLeds_sensorStatus();
-  updateWebsiteForSensorPairingStatus();
-}
-
-// sensorIndex = 0..1
-void sensorPairingStart(int sensorIndex)
-{
-  switch(sensorIndex)
-  {
-    case 0: sensorPairingMode = PAIRING_MODE_SENSOR1; leds_sensorPairing(SENSOR1_LED_INDEX); updateWebsiteForSensorPairingStatus(); break;
-    case 1: sensorPairingMode = PAIRING_MODE_SENSOR2; leds_sensorPairing(SENSOR2_LED_INDEX); updateWebsiteForSensorPairingStatus(); break;
-    default: sensorPairingStop(); break;
-  }
-}
-
-void sensorPairingMoveToNext()
-{
-  switch(sensorPairingMode)
-  {
-    case PAIRING_MODE_NONE: sensorPairingStart(PAIRING_MODE_SENSOR1); break;
-    case PAIRING_MODE_SENSOR1: sensorPairingStart(PAIRING_MODE_SENSOR2); break;
-    case PAIRING_MODE_SENSOR2: sensorPairingStop(); break;
-  }
 }
 
 /**********************************************************************/
@@ -268,12 +215,13 @@ void initWebserverFiles()
     String inputMessage;
     if (request->hasParam("abort"))
     {
-      sensorPairingStop();
+      sensorPairing_Stop(&events);
+      updateLeds_sensorStatus();
     }
     else if(request->hasParam("sensor"))
     {
       inputMessage = request->getParam("sensor")->value();
-      sensorPairingStart(inputMessage.toInt() - 1);
+      sensorPairing_Start(inputMessage.toInt() - 1, &events);
     }
     request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
@@ -351,7 +299,7 @@ void btnHandler_reset_longClick(Button2& btn)
 // Move to the next sensor pairing on double click on the show status button
 void btnHandler_show_status_doubleClick(Button2& btn)
 {
-  sensorPairingMoveToNext();
+  sensorPairing_MoveToNext(&events);
 }
 
 void btnHandler_show_status_click(Button2& btn)
@@ -368,7 +316,8 @@ void btnHandler_show_status_click(Button2& btn)
 // Stop the sensor pairing on long click on the show status button
 void btnHandler_show_status_longClick(Button2& btn)
 {
-  sensorPairingStop();
+  sensorPairing_Stop(&events);
+  updateLeds_sensorStatus();
 }
 
 void btnHandler_wifi_click(Button2& btn)
@@ -380,64 +329,6 @@ void btnHandler_wifi_click(Button2& btn)
   emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
   emulated_message.numberSendLoops = 12;
   messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
-}
-
-/**********************************************************************/
-
-void showTime(time_t time) 
-{
-  tm tm;                            // the structure tm holds time information in a more convenient way
-  localtime_r(&time, &tm);          // update the structure tm with the current time
-  Serial.print("year:");
-  Serial.print(tm.tm_year + 1900);  // years since 1900
-  Serial.print("\tmonth:");
-  Serial.print(tm.tm_mon + 1);      // January = 0 (!)
-  Serial.print("\tday:");
-  Serial.print(tm.tm_mday);         // day of month
-  Serial.print("\thour:");
-  Serial.print(tm.tm_hour);         // hours since midnight  0-23
-  Serial.print("\tmin:");
-  Serial.print(tm.tm_min);          // minutes after the hour  0-59
-  Serial.print("\tsec:");
-  Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
-  Serial.print("\twday");
-  Serial.print(tm.tm_wday);         // days since Sunday 0-6
-  if (tm.tm_isdst == 1)             // Daylight Saving Time flag
-  {
-    Serial.print("\tDST");
-  }
-  else
-  {
-    Serial.print("\tstandard");
-  }
-  Serial.println();
-}
-
-void showTimeNow() 
-{
-  if(!isTimeValid)
-  {
-    Serial.println("Time wasn't synchronised yet.");
-  }
-  else
-  {
-    time_t now;                       // this are the seconds since Epoch (1970) - UTC
-    time(&now);                       // read the current time
-    showTime(now);
-  }
-}
-
-// Adjust the update interval of the NTP server
-uint32_t sntp_update_delay_MS_rfc_not_less_than_15000 ()
-{
-  return 1 * 60 * 60 * 1000UL; // 1 hour
-}
-
-// Callback that is called, when the NTP server was reached
-// https://www.weigu.lu/microcontroller/tips_tricks/esp_NTP_tips_tricks/index.html
-void time_is_set(bool from_sntp) 
-{  
-  isTimeValid = true;
 }
 
 /**********************************************************************/
@@ -485,8 +376,7 @@ void setup()
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
 
-  configTime(TIME_TZ, TIME_NTP_SERVER);
-  settimeofday_cb(time_is_set); // ! optional  callback function to check
+  timeHandling_init();
 
   wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
   wifiManager.setAPCallback(wifiManagerAPOpenedCB);
@@ -541,7 +431,8 @@ void setup()
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
 
-  sensorPairingStop();
+  sensorPairing_Stop(&events);
+  updateLeds_sensorStatus();
 }
 
 void loop()
@@ -573,7 +464,7 @@ void loop()
         time(&now);
         sensor_messages_latest[i].timestamp = now;
         Serial.printf("Data received from Sensor %d \n\r", sensor_id);
-        showTime(now);
+        timeHandling_printSerial(now);
 
         updateWebsiteForSensor(sensor_id, sensor_messages_latest[i]);
         
