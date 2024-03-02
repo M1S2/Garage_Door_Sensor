@@ -24,8 +24,9 @@ if (!!window.EventSource)
 	{
 		console.log("new_readings", e.data);
 		var obj = JSON.parse(e.data);
-		document.getElementById("s"+obj.id).innerHTML = ((obj.pinState == true) ? 'Closed' : 'Open');
-		document.getElementById("v"+obj.id).innerHTML = obj.batteryVoltage_V.toFixed(2);
-		document.getElementById("t"+obj.id).innerHTML = new Date(obj.timestamp * 1000).toLocaleString();
+		document.getElementById("state"+obj.id).innerHTML = ((obj.pinState == true) ? 'Closed' : 'Open');
+		document.getElementById("voltage"+obj.id).innerHTML = obj.batteryVoltage_V.toFixed(2);
+		document.getElementById("percentage"+obj.id).innerHTML = obj.batteryPercentage.toFixed(0);
+		document.getElementById("time"+obj.id).innerHTML = new Date(obj.timestamp * 1000).toLocaleString();
 	}, false);
 }

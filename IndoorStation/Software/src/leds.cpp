@@ -26,15 +26,31 @@ void leds_allOff()
 
 /**********************************************************************/
 
-void leds_sensorStatus(uint8_t index, bool isOpen)
+void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow)
 {
     if(isOpen)
     {
-        setLedStatic(index, COLOR_DOOR_OPEN);
+        if(batteryLow)
+        {
+            leds.setSegment(index, index, index, FX_MODE_FADE, COLORS(COLOR_DOOR_OPEN, DARK(COLOR_DOOR_OPEN)), 2000);
+            leds.addActiveSegment(index);
+        }
+        else
+        {
+            setLedStatic(index, COLOR_DOOR_OPEN);
+        }
     }
     else
     {
-        setLedStatic(index, COLOR_DOOR_CLOSED);
+        if(batteryLow)
+        {
+            leds.setSegment(index, index, index, FX_MODE_FADE, COLORS(COLOR_DOOR_CLOSED, DARK(COLOR_DOOR_CLOSED)), 2000);
+            leds.addActiveSegment(index);
+        }
+        else
+        {
+            setLedStatic(index, COLOR_DOOR_CLOSED);
+        }
     }
 }
 

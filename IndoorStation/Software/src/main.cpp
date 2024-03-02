@@ -19,6 +19,7 @@
 #include <time.h>
 #include <Schedule.h>
 #include "leds.h"
+#include "battery.h"
 #include "addresses.h"
 
 AsyncWebServer server(80);
@@ -92,7 +93,7 @@ void updateLeds_sensorStatus()
     if(sensor_messages_latest[i].timestamp != -1)
     {
       bool isOpen = (sensor_messages_latest[i].msg.pinState == SENSOR_PIN_STATE_OPEN);
-      leds_sensorStatus(i, isOpen);
+      leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_messages_latest[i].msg.batteryVoltage_mV));
     }
     else
     {
@@ -112,6 +113,7 @@ void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sens
     String payload;
     root["id"] = sensor_id;
     root["batteryVoltage_V"] = (sensor_message_timestamped.msg.batteryVoltage_mV / 1000.0f);
+    root["batteryPercentage"] = battery_voltageToPercent(sensor_message_timestamped.msg.batteryVoltage_mV);
     root["pinState"] = sensor_message_timestamped.msg.pinState;
     root["timestamp"] = sensor_message_timestamped.timestamp;
     serializeJson(root, payload);
@@ -576,7 +578,7 @@ void loop()
         updateWebsiteForSensor(sensor_id, sensor_messages_latest[i]);
         
         bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
-        leds_sensorStatus(i, isOpen);
+        leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_message.batteryVoltage_mV));
 
         break;  
       }

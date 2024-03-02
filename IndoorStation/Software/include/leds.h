@@ -24,7 +24,7 @@ extern WS2812FX leds;
 void leds_singleOff(uint8_t index);
 void leds_allOff();
 
-void leds_sensorStatus(uint8_t index, bool isOpen);
+void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow = false);
 void leds_sensorPairing(uint8_t index);
 
 void leds_wifiPairing();
