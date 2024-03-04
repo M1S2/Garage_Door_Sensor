@@ -97,3 +97,31 @@ void leds_wifiAPOpen()
 {
     setLedStatic(WIFI_LED_INDEX, COLOR_WIFI_CFG_AP_OPEN);
 }
+
+/**********************************************************************/
+
+void leds_otaStart()
+{
+    leds.setSegment(SENSOR1_LED_INDEX, SENSOR1_LED_INDEX, SENSOR1_LED_INDEX, FX_MODE_BLINK, COLORS(COLOR_OTA, COLOR_OFF), 500);
+    leds.setSegment(SENSOR2_LED_INDEX, SENSOR2_LED_INDEX, SENSOR2_LED_INDEX, FX_MODE_BLINK, COLORS(COLOR_OTA, COLOR_OFF), 500);
+    leds.setSegment(WIFI_LED_INDEX, WIFI_LED_INDEX, WIFI_LED_INDEX, FX_MODE_BLINK, COLORS(COLOR_OTA, COLOR_OFF), 500);
+    leds.addActiveSegment(SENSOR1_LED_INDEX);
+    leds.addActiveSegment(SENSOR2_LED_INDEX);
+    leds.addActiveSegment(WIFI_LED_INDEX);
+}
+
+void leds_otaEnd(bool success)
+{
+    if(success)
+    {
+        setLedStatic(SENSOR1_LED_INDEX, COLOR_OTA_SUCCESS);
+        setLedStatic(SENSOR2_LED_INDEX, COLOR_OTA_SUCCESS);
+        setLedStatic(WIFI_LED_INDEX, COLOR_OTA_SUCCESS);
+    }
+    else
+    {
+        setLedStatic(SENSOR1_LED_INDEX, COLOR_OTA_FAILURE);
+        setLedStatic(SENSOR2_LED_INDEX, COLOR_OTA_FAILURE);
+        setLedStatic(WIFI_LED_INDEX, COLOR_OTA_FAILURE);
+    }
+}

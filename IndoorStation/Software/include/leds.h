@@ -17,6 +17,9 @@
 #define COLOR_WIFI_FAILED       RED         // LED color used to indicate that the Wifi connection failed
 #define COLOR_PAIRING_1         RED         // First LED color for pairing indication (sensor or wifi)
 #define COLOR_PAIRING_2         BLUE        // Second LED color for pairing indication (sensor or wifi)
+#define COLOR_OTA               YELLOW      // LED color used to indicate a OTA update
+#define COLOR_OTA_FAILURE       RED         // LED color used to indicate a OTA update failure
+#define COLOR_OTA_SUCCESS       GREEN       // LED color used to indicate a OTA update success
 #define COLOR_OFF               BLACK       // LED color off
 
 extern WS2812FX leds;
@@ -32,5 +35,8 @@ void leds_wifiConnecting();
 void leds_wifiConnected();
 void leds_wifiFailed();
 void leds_wifiAPOpen();
+
+void leds_otaStart();
+void leds_otaEnd(bool success);
 
 #endif

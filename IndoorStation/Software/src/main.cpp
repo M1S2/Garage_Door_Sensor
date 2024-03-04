@@ -21,6 +21,7 @@
 #include "battery.h"
 #include "timeHandling.h"
 #include "sensorPairing.h"
+#include "otaUpdate.h"
 #include "addresses.h"
 
 AsyncWebServer server(80);
@@ -257,6 +258,8 @@ void wifiManagerSaveCB()
     updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
   });
   server.addHandler(&events);
+  otaUpdate_init(&server);
+
   // start webserver
   server.begin();
 
@@ -442,6 +445,7 @@ void loop()
   btn_show_status.loop();
   btn_wifi.loop();
   leds.service();
+  otaUpdate_loop();
 
   if(sensor_message_received)
   {
