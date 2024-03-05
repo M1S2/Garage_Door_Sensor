@@ -24,6 +24,7 @@
 #include "timeHandling.h"
 #include "sensorPairing.h"
 #include "otaUpdate.h"
+#include "memory.h"
 #include "addresses.h"
 
 uint8_t sensor_macs[][6] = SENSOR_MACS;
@@ -93,6 +94,15 @@ void btnHandler_show_status_click(Button2& btn)
 void btnHandler_show_status_longClick(Button2& btn)
 {
   sensorPairing_Stop(&events);
+  
+  Serial.println("Clear the memory (for testing purposes!)");
+  memory_reset();
+  // invalidate all last sensor messages
+  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    sensor_messages_latest[i].timestamp = -1;
+  }
+  
   updateLeds_sensorStatus();
 }
 
@@ -105,6 +115,12 @@ void btnHandler_wifi_click(Button2& btn)
   emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
   emulated_message.numberSendLoops = 12;
   messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
+}
+
+void btnHandler_wifi_longClick(Button2& btn)
+{
+  Serial.println("Wifi long Click, show all memory data (only for testing!)");
+  memory_showMemoryContent();
 }
 
 /**********************************************************************/
@@ -257,6 +273,7 @@ void setup()
   btn_wifi.setLongClickTime(500);
   btn_wifi.setDoubleClickTime(400);
   btn_wifi.setClickHandler(btnHandler_wifi_click);
+  btn_wifi.setLongClickDetectedHandler(btnHandler_wifi_longClick);
 
   leds.init();
   leds.setBrightness(20);
@@ -270,10 +287,17 @@ void setup()
     return;
   }
 
-  // invalidate all last sensor messages
+  memory_initBufferedContent();
+
+  // invalidate all last sensor messages and get the saved ones
   for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
   {
     sensor_messages_latest[i].timestamp = -1;
+
+    if(memory_getNumberSensorMessages(i) > 0)
+    {
+      sensor_messages_latest[i] = memory_getLatestSensorMessagesForSensor(i);
+    }
   }
 
   Serial.print("My MAC-Address: ");
@@ -340,6 +364,8 @@ void loop()
         
         bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
         leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_message.batteryVoltage_mV));
+
+        memory_addSensorMessage(i, sensor_messages_latest[i]);
 
         break;  
       }
