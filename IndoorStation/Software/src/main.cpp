@@ -14,65 +14,26 @@
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
-#include <ESPAsyncWiFiManager.h>
 #include <Button2.h>
 #include <Schedule.h>
+#include "config.h"
+#include "structures.h"
 #include "leds.h"
 #include "battery.h"
+#include "wifiHandling.h"
 #include "timeHandling.h"
 #include "sensorPairing.h"
 #include "otaUpdate.h"
 #include "addresses.h"
 
-AsyncWebServer server(80);
-AsyncEventSource events("/events");
-DNSServer dns;
-AsyncWiFiManager wifiManager(&server,&dns);
-
-// https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8
-#define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])
-
 uint8_t sensor_macs[][6] = SENSOR_MACS;
-
-#define BTN_SHOW_STATUS_PIN     12                        // The pin which is used for the show status button
-#define BTN_WIFI_PIN            13                        // The pin which is used for the Wifi button
-#define BTN_RESET_PIN           16                        // The pin which is used for the reset button
 Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
-
-#define SENSOR_PIN_STATE_OPEN   LOW                       // This pin state of the sensor is interpreted as open door
-#define NUM_SUPPORTED_SENSORS   2                         // The number of supported sensors
-
-#define CONNECTION_TIMEOUT_MS   10000                     // Timeout in ms for connection to router
-#define CONFIGURATION_AP_NAME   "Garage Door Sensor"      // Name for the configuration access point
-#define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
-
-// Packing of this structure reduces the size to 4 bytes
-PACK_STRUCT_BEGIN
-typedef struct message_sensor
-{
-  PACK_STRUCT_FIELD(bool pinState);
-  PACK_STRUCT_FIELD(uint16_t batteryVoltage_mV);
-  PACK_STRUCT_FLD_8(uint8_t numberSendLoops);
-}PACK_STRUCT_STRUCT message_sensor_t;
-PACK_STRUCT_END
-
-PACK_STRUCT_BEGIN
-typedef struct message_sensor_timestamped
-{
-  PACK_STRUCT_FIELD(message_sensor_t msg);
-  PACK_STRUCT_FIELD(time_t timestamp);
-}PACK_STRUCT_STRUCT message_sensor_timestamped_t;
-PACK_STRUCT_END
 
 message_sensor_t sensor_message;
 bool sensor_message_received = false;
 uint8_t sensor_message_received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
-
-// The event handlers are initialized in the setup()
-WiFiEventHandler wifiConnectHandler;
-WiFiEventHandler wifiDisconnectHandler;
 
 /**********************************************************************/
 
@@ -94,32 +55,6 @@ void updateLeds_sensorStatus()
 
 /**********************************************************************/
 
-void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
-{
-  if(sensor_message_timestamped.timestamp != -1)
-  {
-    // create a JSON document with the data and send it by event to the web page
-    StaticJsonDocument<1000> root;
-    String payload;
-    root["id"] = sensor_id;
-    root["batteryVoltage_V"] = (sensor_message_timestamped.msg.batteryVoltage_mV / 1000.0f);
-    root["batteryPercentage"] = battery_voltageToPercent(sensor_message_timestamped.msg.batteryVoltage_mV);
-    root["pinState"] = sensor_message_timestamped.msg.pinState;
-    root["timestamp"] = sensor_message_timestamped.timestamp;
-    serializeJson(root, payload);
-    Serial.printf("event send: %s\n", payload.c_str());
-    events.send(payload.c_str(), "new_readings", millis());
-  }
-}
-
-void updateWebsite()
-{
-  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
-  {
-    updateWebsiteForSensor(i, sensor_messages_latest[i]);
-  }
-}
-
 void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 {
   memcpy(&sensor_message, data, sizeof(sensor_message));
@@ -129,26 +64,71 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 /**********************************************************************/
 
+void btnHandler_reset_longClick(Button2& btn)
+{
+  leds_wifiFailed();
+  wifiHandling_eraseCredentials();
+  delay(1000);
+  ESP.restart();
+}
+
+// Move to the next sensor pairing on double click on the show status button
+void btnHandler_show_status_doubleClick(Button2& btn)
+{
+  sensorPairing_MoveToNext(&events);
+}
+
+void btnHandler_show_status_click(Button2& btn)
+{
+  Serial.println("Show Status Click (used to emulate sensor message for the first sensor for the moment)");
+
+  message_sensor_t emulated_message;
+  emulated_message.pinState = random(0,2) == 0 ? false : true;
+  emulated_message.batteryVoltage_mV = 3141 + random(0, 1000);
+  emulated_message.numberSendLoops = 42;
+  messageReceived((uint8_t*)&sensor_macs[0], (uint8_t*)&emulated_message, 0 /* len not used */);
+}
+
+// Stop the sensor pairing on long click on the show status button
+void btnHandler_show_status_longClick(Button2& btn)
+{
+  sensorPairing_Stop(&events);
+  updateLeds_sensorStatus();
+}
+
+void btnHandler_wifi_click(Button2& btn)
+{
+  Serial.println("Wifi Click (used to emulate sensor message for the second sensor for the moment)");
+
+  message_sensor_t emulated_message;
+  emulated_message.pinState = random(0,2) == 0 ? false : true;
+  emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
+  emulated_message.numberSendLoops = 12;
+  messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
+}
+
+/**********************************************************************/
+
 String processor(const String& var)
 {
-  if(var == "PAIRING_SENSOR_NUMBER")
-  {
-      switch(sensorPairingMode)
-      {
-        case PAIRING_MODE_SENSOR1: return "1";
-        case PAIRING_MODE_SENSOR2: return "2";
-        default: return "NONE";       // This will never be visible (hidden by the PAIRING_STATUS_DISPLAY_STYLE placeholder)
-      }
-  }
-  else if(var == "PAIRING_STATUS_DISPLAY_STYLE")
-  {
-    return (sensorPairingMode == PAIRING_MODE_NONE) ? "style=\"display: none\"" : "style=\"display: block\"";
-  }
-  else if(var == "INDOOR_STATION_MAC")
-  {
-    return WiFi.macAddress();
-  }
-  return String();
+    if(var == "PAIRING_SENSOR_NUMBER")
+    {
+        switch(sensorPairingMode)
+        {
+            case PAIRING_MODE_SENSOR1: return "1";
+            case PAIRING_MODE_SENSOR2: return "2";
+            default: return "NONE";       // This will never be visible (hidden by the PAIRING_STATUS_DISPLAY_STYLE placeholder)
+        }
+    }
+    else if(var == "PAIRING_STATUS_DISPLAY_STYLE")
+    {
+        return (sensorPairingMode == PAIRING_MODE_NONE) ? "style=\"display: none\"" : "style=\"display: block\"";
+    }
+    else if(var == "INDOOR_STATION_MAC")
+    {
+        return WiFi.macAddress();
+    }
+    return String();
 }
 
 void initWebserverFiles()
@@ -228,110 +208,30 @@ void initWebserverFiles()
   });
 }
 
-void wifiEraseCredentials() 
+void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
 {
-  WiFi.disconnect(true);
-  ESP.eraseConfig();
-  Serial.println("WiFi credentials erased");
-}
-
-void wifiManagerSaveCB()
-{
-  WiFi.softAPdisconnect(true);
-  WiFi.persistent(false);
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.begin();
-
-  Serial.print("Station IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Wi-Fi Channel: ");
-  Serial.println(WiFi.channel());
-
-  // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/
-  WiFi.setAutoReconnect(true);
-  WiFi.persistent(true);
-
-  initWebserverFiles();
-  // events 
-  events.onConnect([](AsyncEventSourceClient *client)
+  if(sensor_message_timestamped.timestamp != -1)
   {
-    updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
-  });
-  server.addHandler(&events);
-  otaUpdate_init(&server);
-
-  // start webserver
-  server.begin();
-
-  leds_wifiConnected();
+    // create a JSON document with the data and send it by event to the web page
+    StaticJsonDocument<1000> root;
+    String payload;
+    root["id"] = sensor_id;
+    root["batteryVoltage_V"] = (sensor_message_timestamped.msg.batteryVoltage_mV / 1000.0f);
+    root["batteryPercentage"] = battery_voltageToPercent(sensor_message_timestamped.msg.batteryVoltage_mV);
+    root["pinState"] = sensor_message_timestamped.msg.pinState;
+    root["timestamp"] = sensor_message_timestamped.timestamp;
+    serializeJson(root, payload);
+    Serial.printf("event send: %s\n", payload.c_str());
+    events.send(payload.c_str(), "new_readings", millis());
+  }
 }
 
-void wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
+void updateWebsite()
 {
-  WiFi.persistent(true);
-  leds_wifiAPOpen();
-  manager->setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
-}
-
-void onWifiConnect(const WiFiEventStationModeGotIP& event) 
-{
-  // https://github.com/esp8266/Arduino/issues/5722
-  // The wifi callbacks execute in the SYS context, and you can't yield/delay in there.
-  // If you need to do that, I suggest to use the wifi callback to schedule another callback with your code that requires yield/delay.
-  // Scheduled functions execute as though they were called from the loop, I.e. in CONT context.
-  // Same applies to the onWifiDisconnect event
-  schedule_function(leds_wifiConnected);
-}
-
-void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) 
-{
-  // This function gets called cyclic as long as the Wifi is disconnected
-  schedule_function(leds_wifiFailed);
-}
-
-/**********************************************************************/
-
-void btnHandler_reset_longClick(Button2& btn)
-{
-  leds_wifiFailed();
-  wifiEraseCredentials();
-  delay(1000);
-  ESP.restart();
-}
-
-// Move to the next sensor pairing on double click on the show status button
-void btnHandler_show_status_doubleClick(Button2& btn)
-{
-  sensorPairing_MoveToNext(&events);
-}
-
-void btnHandler_show_status_click(Button2& btn)
-{
-  Serial.println("Show Status Click (used to emulate sensor message for the first sensor for the moment)");
-
-  message_sensor_t emulated_message;
-  emulated_message.pinState = random(0,2) == 0 ? false : true;
-  emulated_message.batteryVoltage_mV = 3141 + random(0, 1000);
-  emulated_message.numberSendLoops = 42;
-  messageReceived((uint8_t*)&sensor_macs[0], (uint8_t*)&emulated_message, 0 /* len not used */);
-}
-
-// Stop the sensor pairing on long click on the show status button
-void btnHandler_show_status_longClick(Button2& btn)
-{
-  sensorPairing_Stop(&events);
-  updateLeds_sensorStatus();
-}
-
-void btnHandler_wifi_click(Button2& btn)
-{
-  Serial.println("Wifi Click (used to emulate sensor message for the second sensor for the moment)");
-
-  message_sensor_t emulated_message;
-  emulated_message.pinState = random(0,2) == 0 ? false : true;
-  emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
-  emulated_message.numberSendLoops = 12;
-  messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
+  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    updateWebsiteForSensor(i, sensor_messages_latest[i]);
+  }
 }
 
 /**********************************************************************/
@@ -381,44 +281,8 @@ void setup()
 
   timeHandling_init();
 
-  wifiManager.setSaveConfigCallback(wifiManagerSaveCB);
-  wifiManager.setAPCallback(wifiManagerAPOpenedCB);
-
   leds_wifiConnecting();
-  
-  // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/ 
-  // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/generic-examples.html
-  wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
-  wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
-
-  WiFi.mode(WIFI_AP_STA);         // Set the device as a Station and Soft Access Point simultaneously
-  WiFi.begin();
-  boolean keepConnecting = true;
-  uint8_t connectionStatus;
-  unsigned long start = millis();
-  while (keepConnecting)
-  {
-    connectionStatus = WiFi.status();
-    if (millis() > start + CONNECTION_TIMEOUT_MS)
-    {
-      keepConnecting = false;
-      Serial.println("Connection timed out");
-    }
-    if (connectionStatus == WL_CONNECTED || connectionStatus == WL_CONNECT_FAILED)
-    {
-      keepConnecting = false;
-    }
-    leds.service();
-  }
-  if(connectionStatus != WL_CONNECTED)
-  {
-    wifiManager.setConnectTimeout(1);
-    wifiManager.startConfigPortalModeless(CONFIGURATION_AP_NAME, CONFIGURATION_AP_PW);
-  }
-  else
-  {
-    wifiManagerSaveCB();
-  }
+  wifiHandling_init();
 
   if (esp_now_init() == 0) 
   {
@@ -438,9 +302,11 @@ void setup()
   updateLeds_sensorStatus();
 }
 
+/**********************************************************************/
+
 void loop()
 {
-  wifiManager.loop();
+  wifiHandling_wifiManagerLoop();
   btn_reset.loop();
   btn_show_status.loop();
   btn_wifi.loop();

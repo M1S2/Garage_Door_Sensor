@@ -1,3 +1,6 @@
+#ifndef TIME_HANDLING_H
+#define TIME_HANDLING_H
+
 #include <Arduino.h>
 #include <time.h>
 
@@ -24,3 +27,5 @@ void timeHandling_printSerial(time_t time);
  * Print the current time on the serial output in a readable way.
  */
 void timeHandling_printNowSerial();
+
+#endif

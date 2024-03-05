@@ -153,7 +153,7 @@ void setup()
   pinMode(MCU_LATCH_PIN, OUTPUT);
   digitalWrite(MCU_LATCH_PIN, HIGH);    // Enable latch pin to keep ESP on
 
-  pinMode(DOOR_SWITCH_PIN, INPUT);
+  pinMode(DOOR_SWITCH_PIN, INPUT_PULLDOWN_16);
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);      // LED on
 
