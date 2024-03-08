@@ -5,34 +5,45 @@
 #include "config.h"
 #include "structures.h"
 
-#define FILENAME_HISTORY    "/historyData.txt"
+#define FILENAME_HISTORY_SENSOR_FORMAT		"/historySensor%d.txt"
 
-typedef struct __attribute__((packed)) eeprom_general_settings
-{
-	uint8_t Placeholder_for_any_general_settings_persisted_to_eeprom;			// change this...
-}eeprom_general_settings_t;
-
-typedef struct eeprom_content
-{
-	eeprom_general_settings_t general_settings;
-	uint16_t sensor_messages_nextElement_Indices[NUM_SUPPORTED_SENSORS];
-    message_sensor_timestamped_t sensor_messages[NUM_SUPPORTED_SENSORS][25];
-//	message_sensor_timestamped_t sensor_messages[NUM_SUPPORTED_SENSORS][(4095 - sizeof(eeprom_general_settings_t) - sizeof(sensor_messages_nextElement_Indices)) / NUM_SUPPORTED_SENSORS];
-}eeprom_content_t;
-
-extern eeprom_content_t eeprom_content_buffered;
-
-void memory_initBufferedContent();
-void memory_persistBufferedContent();
+/**
+ * Delete all sensor history files.
+ */
 void memory_reset();
+
+/**
+ * Read all sensor history files and show the decoded content on the Serial output.
+ */
 void memory_showMemoryContent();
 
+/**
+ * Get the number of available sensor messages for the requested sensor.
+ * @param sensorIndex Index of the sensor, for which the number of messages is returned. If lager than NUM_SUPPORTED_SENSORS it is limited to this value.
+ * @return Number of sensor messages for the requested sensor.
+ */
 uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex);
-message_sensor_timestamped_t* memory_getSensorMessagesForSensor(uint8_t sensorIndex);
-message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex);
-eeprom_general_settings_t memory_getGeneralSettings();
 
-void memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
-void memory_setGeneralSettings(eeprom_general_settings_t generalSettings);
+/**
+ * Get all available sensor messages for the requested sensor.
+ * @param sensorIndex Index of the sensor, for which the messages are returned. If lager than NUM_SUPPORTED_SENSORS it is limited to this value.
+ * @param sensorMessagesBuffer Pointer to the buffer, to which the sensor messages are returned. Make sure, the array is large enough (minimum the number of message returned by memory_getNumberSensorMessages) !!!
+ */
+void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_timestamped_t* sensorMessagesBuffer);
+
+/**
+ * Get the latest available sensor message for the requested sensor.
+ * @param sensorIndex Index of the sensor, for which the last message is returned. If lager than NUM_SUPPORTED_SENSORS it is limited to this value.
+ * @return Last sensor message for the requested sensor.
+ */
+message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex);
+
+/**
+ * Add the given message to the history file for the requested sensor.
+ * @param sensorIndex Index of the sensor, for which the sensor message is saved. If lager than NUM_SUPPORTED_SENSORS it is limited to this value.
+ * @param sensorMessage Sensor messages that is saved.
+ * @return True if message was added; otherwise false
+ */
+bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
 
 #endif

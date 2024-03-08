@@ -287,8 +287,6 @@ void setup()
     return;
   }
 
-  memory_initBufferedContent();
-
   // invalidate all last sensor messages and get the saved ones
   for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
   {

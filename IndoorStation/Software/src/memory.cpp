@@ -2,42 +2,34 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-eeprom_content_t eeprom_content_buffered;
-
-void memory_initBufferedContent()
-{
-    File memoryFile = LittleFS.open(FILENAME_HISTORY, "r");
-    memoryFile.read((byte*)&eeprom_content_buffered, sizeof(eeprom_content_buffered));
-    memoryFile.close();
-    Serial.println("Memory content initialized");
-}
-
-void memory_persistBufferedContent()
-{
-    File memoryFile = LittleFS.open(FILENAME_HISTORY, "w");
-    memoryFile.write((byte*)&eeprom_content_buffered, sizeof(eeprom_content_buffered));
-    memoryFile.close();
-}
+// https://github.com/esp8266/Arduino/blob/master/cores/esp8266/FS.h
 
 void memory_reset()
 {
-    LittleFS.remove(FILENAME_HISTORY);
-    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+	for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
-        eeprom_content_buffered.sensor_messages_nextElement_Indices[i] = 0;
-    }
+		char strBuf[32];
+		sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, i);
+		LittleFS.remove(strBuf);
+	}
 }
 
 void memory_showMemoryContent()
 {
+    FSInfo info;
+    LittleFS.info(info);
+    Serial.println("--- File System usage");
+    Serial.printf("%d of %d bytes used (%.2f %%)\n", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes);
+        
     for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
         uint16_t numberMessages = memory_getNumberSensorMessages(i);
         Serial.printf("--- Data for sensor %d (%d messages)\n", i, numberMessages);
-        message_sensor_timestamped_t* messages = memory_getSensorMessagesForSensor(i);
+        message_sensor_timestamped_t sensorMessages[numberMessages];
+        memory_getSensorMessagesForSensor(i, sensorMessages);
         for(int j = 0; j < numberMessages; j++)
         {
-            Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", messages[j].timestamp, messages[j].msg.pinState, messages[j].msg.batteryVoltage_mV);
+            Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", sensorMessages[j].timestamp, sensorMessages[j].msg.pinState, sensorMessages[j].msg.batteryVoltage_mV);
         }
     }
 }
@@ -48,16 +40,38 @@ uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex)
     {
         sensorIndex = NUM_SUPPORTED_SENSORS - 1;
     }
-    return eeprom_content_buffered.sensor_messages_nextElement_Indices[sensorIndex];
+	
+	char strBuf[32];
+	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+	File memoryFile = LittleFS.open(strBuf, "r");
+    size_t fileSize = memoryFile.size();
+    memoryFile.close();
+	
+    return fileSize / sizeof(message_sensor_timestamped_t);
 }
 
-message_sensor_timestamped_t* memory_getSensorMessagesForSensor(uint8_t sensorIndex)
+void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_timestamped_t* sensorMessagesBuffer)
 {
+    if(sensorMessagesBuffer == NULL) { return; }
+
     if(sensorIndex >= NUM_SUPPORTED_SENSORS)
     {
         sensorIndex = NUM_SUPPORTED_SENSORS - 1;
     }
-    return eeprom_content_buffered.sensor_messages[sensorIndex];
+	
+	uint16_t numberSensorMessages = memory_getNumberSensorMessages(sensorIndex);
+	
+	char strBuf[32];
+	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+	File memoryFile = LittleFS.open(strBuf, "r");
+
+	for(int i = 0; i < numberSensorMessages; i++)
+    {
+		message_sensor_timestamped_t sensorMessage;
+		memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+		sensorMessagesBuffer[i] = sensorMessage;
+	}
+	memoryFile.close();
 }
 
 message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex)
@@ -66,39 +80,30 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
     {
         sensorIndex = NUM_SUPPORTED_SENSORS - 1;
     }
-    uint16_t nextIndex = eeprom_content_buffered.sensor_messages_nextElement_Indices[sensorIndex];
-    if(nextIndex > 0)
-    {
-        return eeprom_content_buffered.sensor_messages[sensorIndex][nextIndex - 1];
-    }
-    else
-    {
-        // no messages available yet. Return the first message. The user should use the memory_getNumberSensorMessages() method to see, if this message is valid.
-        return eeprom_content_buffered.sensor_messages[sensorIndex][0];
-    }
+	
+	char strBuf[32];
+	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+	File memoryFile = LittleFS.open(strBuf, "r");
+	memoryFile.seek(sizeof(message_sensor_timestamped_t), SeekEnd);		// move file pointer to beginning of last entry
+
+	message_sensor_timestamped_t sensorMessage;
+	memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+	memoryFile.close();
+	return sensorMessage;
 }
 
-eeprom_general_settings_t memory_getGeneralSettings()
-{
-    return eeprom_content_buffered.general_settings;
-}
-
-void memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage)
+bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage)
 {
     if(sensorIndex >= NUM_SUPPORTED_SENSORS)
     {
         sensorIndex = NUM_SUPPORTED_SENSORS - 1;
     }
+	
+	char strBuf[32];
+	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+	File memoryFile = LittleFS.open(strBuf, "a");
+	size_t writtenSize = memoryFile.write((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+	memoryFile.close();
 
-    uint16_t nextIndex = eeprom_content_buffered.sensor_messages_nextElement_Indices[sensorIndex];
-    eeprom_content_buffered.sensor_messages[sensorIndex][nextIndex] = sensorMessage;
-    eeprom_content_buffered.sensor_messages_nextElement_Indices[sensorIndex]++;
-
-    memory_persistBufferedContent();
-}
-
-void memory_setGeneralSettings(eeprom_general_settings_t generalSettings)
-{
-    eeprom_content_buffered.general_settings = generalSettings;
-    memory_persistBufferedContent();
+    return writtenSize == sizeof(message_sensor_timestamped_t);
 }
