@@ -121,6 +121,15 @@ void btnHandler_wifi_longClick(Button2& btn)
 {
   Serial.println("Wifi long Click, show all memory data (only for testing!)");
   memory_showMemoryContent();
+
+  if(wifiConfig_isAPOpen)
+  {
+    if(!wps_start())
+    {
+      leds_wifiAPOpen();
+    }
+  }
+
 }
 
 /**********************************************************************/
