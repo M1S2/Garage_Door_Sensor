@@ -12,12 +12,15 @@ AsyncEventSource events("/events");
 DNSServer dns;
 AsyncWiFiManager wifiManager(&server, &dns);
 
+bool wifiConfig_isAPOpen;
+
 // The event handlers are initialized in the setup()
 WiFiEventHandler wifiConnectHandler;
 WiFiEventHandler wifiDisconnectHandler;
 
 void wifiHandling_eraseCredentials() 
 {
+    leds_wifiFailed();
     WiFi.disconnect(true);
     ESP.eraseConfig();
     Serial.println("WiFi credentials erased");
@@ -36,11 +39,15 @@ void onWifiConnect(const WiFiEventStationModeGotIP& event)
 void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) 
 {
   // This function gets called cyclic as long as the Wifi is disconnected
-  schedule_function(leds_wifiFailed);
+  if(!wifiConfig_isAPOpen)
+  {
+    schedule_function(leds_wifiFailed);
+  }
 }
 
 void wifiHandling_wifiManagerSaveCB()
 {
+    wifiConfig_isAPOpen = false;
     WiFi.softAPdisconnect(true);
     WiFi.persistent(false);
     WiFi.mode(WIFI_AP_STA);
@@ -72,6 +79,7 @@ void wifiHandling_wifiManagerSaveCB()
 
 void wifiHandling_wifiManagerAPOpenedCB(AsyncWiFiManager* manager)
 {
+    wifiConfig_isAPOpen = true;
     WiFi.persistent(true);
     leds_wifiAPOpen();
     manager->setConnectTimeout(CONNECTION_TIMEOUT_MS / 1000);
@@ -91,6 +99,8 @@ void wifiHandling_init()
     // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/generic-examples.html
     wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
     wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect);
+
+    WiFi.hostname(WIFI_HOSTNAME);
 
     WiFi.mode(WIFI_AP_STA);         // Set the device as a Station and Soft Access Point simultaneously
     WiFi.begin();

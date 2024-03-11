@@ -67,7 +67,6 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 void btnHandler_reset_longClick(Button2& btn)
 {
-  leds_wifiFailed();
   wifiHandling_eraseCredentials();
   delay(1000);
   ESP.restart();

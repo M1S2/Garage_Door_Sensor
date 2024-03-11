@@ -7,6 +7,8 @@
 extern AsyncWebServer server;
 extern AsyncEventSource events;
 
+extern bool wifiConfig_isAPOpen;
+
 void wifiHandling_wifiManagerLoop();
 void wifiHandling_init();
 void wifiHandling_eraseCredentials();
