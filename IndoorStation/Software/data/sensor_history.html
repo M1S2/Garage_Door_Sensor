@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Garage Door Sensor Status Accu</title>
+		<title>Garage Door Sensor Status History</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 		<link rel="icon" href="data:,">
@@ -11,7 +11,7 @@
 	<body>
 		<div class="topnav">	
 			<a href="/index.html" id="Heading">Garage Door Sensor Status</a>
-			<div id="SubHeading">Accu Chart</div>
+			<div id="SubHeading">Sensor History</div>
 			<!-- Navigation links (hidden by default) -->
 			<div id="menuElements">
 				<a href="/index.html">Dashboard</a>
@@ -22,12 +22,11 @@
 				<i class="fa fa-bars"></i>
 			</a>	
 		</div>
-		<div class="content">
-			<p>...Show correct accu chart (only dummy data at the moment)...</p>
-			
+		<div class="content">			
 			<div id="chart-accu" class="container"></div>
+			<div id="chart-pinState" class="container"></div>
 		</div>
 	</body>
-	<script src="accu_chart.js"></script>
+	<script src="sensor_history.js"></script>
 	<script src="common.js"></script>
 </html>

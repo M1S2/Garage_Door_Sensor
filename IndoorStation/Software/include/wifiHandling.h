@@ -5,7 +5,8 @@
 #include <ESPAsyncWebServer.h>
 
 extern AsyncWebServer server;
-extern AsyncEventSource events;
+extern AsyncEventSource events_dashboard;
+extern AsyncEventSource events_sensorHistory;
 
 extern bool wifiConfig_isAPOpen;
 

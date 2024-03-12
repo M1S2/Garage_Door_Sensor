@@ -7,7 +7,8 @@
 
 void updateLeds_sensorStatus();
 void initWebserverFiles();
-void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped);
-void updateWebsite();
+void updateWebsiteMainForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped);
+void updateWebsiteMain();
+void updateWebsiteSensorHistory();
 
 #endif

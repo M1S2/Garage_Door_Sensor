@@ -7,7 +7,8 @@
 #include "main.h"
 
 AsyncWebServer server(80);
-AsyncEventSource events("/events");
+AsyncEventSource events_dashboard("/events_dashboard");
+AsyncEventSource events_sensorHistory("/events_sensorHistory");
 
 DNSServer dns;
 AsyncWiFiManager wifiManager(&server, &dns);
@@ -64,11 +65,22 @@ void wifiHandling_wifiManagerSaveCB()
 
     initWebserverFiles();
     // events 
-    events.onConnect([](AsyncEventSourceClient *client)
+    events_dashboard.onConnect([](AsyncEventSourceClient *client)
     {
-        updateWebsite();      // Update the values on the website when it is opened (or reloaded in the browser)
+        updateWebsiteMain();            // Update the values on the website when it is opened (or reloaded in the browser)
     });
-    server.addHandler(&events);
+    events_sensorHistory.onConnect([](AsyncEventSourceClient *client)
+    {
+        if(client->lastId())
+        {
+            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+        }
+        client->send("configure reconnect delay to 5 seconds!", NULL, millis(), 5000);
+
+        updateWebsiteSensorHistory();   // Update the sensor history values on the website when it is opened (or reloaded in the browser)
+    });
+    server.addHandler(&events_dashboard);
+    server.addHandler(&events_sensorHistory);
     otaUpdate_init(&server);
 
     // start webserver

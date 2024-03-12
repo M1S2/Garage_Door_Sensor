@@ -21,15 +21,15 @@ void memory_showMemoryContent()
     Serial.println("--- File System usage");
     Serial.printf("%d of %d bytes used (%.2f %%)\n", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes);
         
-    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
     {
-        uint16_t numberMessages = memory_getNumberSensorMessages(i);
-        Serial.printf("--- Data for sensor %d (%d messages)\n", i, numberMessages);
+        uint16_t numberMessages = memory_getNumberSensorMessages(sensorIdx);
+        Serial.printf("--- Data for sensor %d (%d messages)\n", sensorIdx, numberMessages);
         message_sensor_timestamped_t sensorMessages[numberMessages];
-        memory_getSensorMessagesForSensor(i, sensorMessages);
-        for(int j = 0; j < numberMessages; j++)
+        memory_getSensorMessagesForSensor(sensorIdx, sensorMessages);
+        for(int msgIdx = 0; msgIdx < numberMessages; msgIdx++)
         {
-            Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", sensorMessages[j].timestamp, sensorMessages[j].msg.pinState, sensorMessages[j].msg.batteryVoltage_mV);
+            Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", sensorMessages[msgIdx].timestamp, sensorMessages[msgIdx].msg.pinState, sensorMessages[msgIdx].msg.batteryVoltage_mV);
         }
     }
 }

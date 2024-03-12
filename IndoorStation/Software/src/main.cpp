@@ -75,7 +75,7 @@ void btnHandler_reset_longClick(Button2& btn)
 // Move to the next sensor pairing on double click on the show status button
 void btnHandler_show_status_doubleClick(Button2& btn)
 {
-  sensorPairing_MoveToNext(&events);
+  sensorPairing_MoveToNext(&events_dashboard);
 }
 
 void btnHandler_show_status_click(Button2& btn)
@@ -92,7 +92,7 @@ void btnHandler_show_status_click(Button2& btn)
 // Stop the sensor pairing on long click on the show status button
 void btnHandler_show_status_longClick(Button2& btn)
 {
-  sensorPairing_Stop(&events);
+  sensorPairing_Stop(&events_dashboard);
   
   Serial.println("Clear the memory (for testing purposes!)");
   memory_reset();
@@ -158,10 +158,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/index.html", "text/html"); 
   });
 
-  // Route for root accu_chart.html
-  server.on("/accu_chart.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root sensor_history.html
+  server.on("/sensor_history.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/accu_chart.html", "text/html"); 
+    request->send(LittleFS, "/sensor_history.html", "text/html"); 
   });
 
   // Route for root sensor_info.html
@@ -188,10 +188,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/index.js", "text/javascript"); 
   });
 
-  // Route for root accu_chart.js
-  server.on("/accu_chart.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root sensor_history.js
+  server.on("/sensor_history.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/accu_chart.js", "text/javascript"); 
+    request->send(LittleFS, "/sensor_history.js", "text/javascript"); 
   });
 
   // Route for root sensor_info.js
@@ -211,19 +211,19 @@ void initWebserverFiles()
     String inputMessage;
     if (request->hasParam("abort"))
     {
-      sensorPairing_Stop(&events);
+      sensorPairing_Stop(&events_dashboard);
       updateLeds_sensorStatus();
     }
     else if(request->hasParam("sensor"))
     {
       inputMessage = request->getParam("sensor")->value();
-      sensorPairing_Start(inputMessage.toInt() - 1, &events);
+      sensorPairing_Start(inputMessage.toInt() - 1, &events_dashboard);
     }
     request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
 }
 
-void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
+void updateWebsiteMainForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
 {
   if(sensor_message_timestamped.timestamp != -1)
   {
@@ -237,15 +237,41 @@ void updateWebsiteForSensor(uint8_t sensor_id, message_sensor_timestamped_t sens
     root["timestamp"] = sensor_message_timestamped.timestamp;
     serializeJson(root, payload);
     Serial.printf("event send: %s\n", payload.c_str());
-    events.send(payload.c_str(), "new_readings", millis());
+    events_dashboard.send(payload.c_str(), "new_readings", millis());
   }
 }
 
-void updateWebsite()
+void updateWebsiteMain()
 {
   for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
   {
-    updateWebsiteForSensor(i, sensor_messages_latest[i]);
+    updateWebsiteMainForSensor(i, sensor_messages_latest[i]);
+  }
+}
+
+void updateWebsiteSensorHistory()
+{     
+  events_sensorHistory.send("", "clear_sensorHistory", millis());
+
+  for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
+  {
+    uint16_t numberMessages = memory_getNumberSensorMessages(sensorIdx);
+    message_sensor_timestamped_t sensorMessages[numberMessages];
+    memory_getSensorMessagesForSensor(sensorIdx, sensorMessages);
+    for(int msgIdx = 0; msgIdx < numberMessages; msgIdx++)
+    {
+      // create a JSON document with the data and send it by event to the web page
+      StaticJsonDocument<1000> root;
+      String payload;
+      root["sensorId"] = sensorIdx;
+      root["timestamp"] = sensorMessages[msgIdx].timestamp;
+      root["pinState"] = sensorMessages[msgIdx].msg.pinState;
+      root["batteryVoltage_mV"] = sensorMessages[msgIdx].msg.batteryVoltage_mV;
+      root["batteryPercentage"] = battery_voltageToPercent(sensorMessages[msgIdx].msg.batteryVoltage_mV);
+      serializeJson(root, payload);
+      Serial.printf("sensor history event send: %s\n", payload.c_str());
+      events_sensorHistory.send(payload.c_str(), "new_sensorHistory", millis());
+    }
   }
 }
 
@@ -319,7 +345,7 @@ void setup()
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
 
-  sensorPairing_Stop(&events);
+  sensorPairing_Stop(&events_dashboard);
   updateLeds_sensorStatus();
 }
 
@@ -357,7 +383,7 @@ void loop()
         Serial.printf("Data received from Sensor %d \n\r", sensor_id);
         timeHandling_printSerial(now);
 
-        updateWebsiteForSensor(sensor_id, sensor_messages_latest[i]);
+        updateWebsiteMainForSensor(sensor_id, sensor_messages_latest[i]);
         
         bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
         leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_message.batteryVoltage_mV));
