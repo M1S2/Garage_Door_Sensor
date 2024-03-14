@@ -1,10 +1,6 @@
 // This is the code that receives all garage door states
 // It differentiates between the sensors by their MAC addresses
 
-// Add a file called "addresses.h" beside this "main.cpp" file that contains a line for each sensor that should be used with the following content:
-// #define SENSOR1_MAC {0x01, 0x02, 0x03, 0x04, 0x05, 0x06}     // 01:02:03:04:05:06, replace this with the MAC address of the sensor ESP of the first sensor
-// #define SENSOR_MACS { SENSOR1_MAC }
-
 // https://wolles-elektronikkiste.de/esp-now#multi_transm_1_recv  (Ein Transmitter, ein Receiver – Advanced (ESP32))
 // https://randomnerdtutorials.com/esp-now-auto-pairing-esp32-esp8266/
 
@@ -25,9 +21,8 @@
 #include "sensorPairing.h"
 #include "otaUpdate.h"
 #include "memory.h"
-#include "addresses.h"
 
-uint8_t sensor_macs[][6] = SENSOR_MACS;
+uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
 Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
@@ -143,6 +138,22 @@ String processor(const String& var)
     {
         return WiFi.macAddress();
     }
+    else if(var.startsWith("MAC_SENSOR"))
+    {
+        String sensorIndexStr = var;
+        sensorIndexStr.replace("MAC_SENSOR","");
+        long sensorIndex = sensorIndexStr.toInt() - 1;
+        if(sensorIndex >= NUM_SUPPORTED_SENSORS)
+        {
+            return "MAC_SENSOR index to large!";
+        }
+        else
+        {
+            char macAddrStr[18];
+            sprintf(macAddrStr, "%02X:%02X:%02X:%02X:%02X:%02X", sensor_macs[sensorIndex][0], sensor_macs[sensorIndex][1], sensor_macs[sensorIndex][2], sensor_macs[sensorIndex][3], sensor_macs[sensorIndex][4], sensor_macs[sensorIndex][5]);
+            return macAddrStr;
+        }
+    }
     return String();
 }
 
@@ -219,6 +230,38 @@ void initWebserverFiles()
       inputMessage = request->getParam("sensor")->value();
       sensorPairing_Start(inputMessage.toInt() - 1, &events_dashboard);
     }
+    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
+  });
+
+  // Send a GET request to <ESP_IP>/mac_sensor
+  server.on("/mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
+  {
+    String inputMessage;
+    int8_t sensorIndex = -1;
+    uint tmp_mac[6];
+    if(request->hasParam("mac_sensor_1"))
+    {
+      sensorIndex = 0;
+      inputMessage = request->getParam("mac_sensor_1")->value();
+    }
+    else if(request->hasParam("mac_sensor_2"))
+    {
+      sensorIndex = 1;
+      inputMessage = request->getParam("mac_sensor_2")->value();
+    }
+
+    if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+    {
+      sscanf(inputMessage.c_str(), "%02X:%02X:%02X:%02X:%02X:%02X", &tmp_mac[0], &tmp_mac[1], &tmp_mac[2], &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
+      for(uint8_t i = 0; i < 6; i++)
+      {
+        sensor_macs[sensorIndex][i] = tmp_mac[i];
+      }
+
+      // Save new sensor_macs
+      memory_saveSensorMacs(sensor_macs);
+    }
+
     request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
 }
@@ -311,6 +354,9 @@ void setup()
     Serial.println("An Error has occurred while mounting LittleFS");
     return;
   }
+
+  // Load saved sensor_macs
+  memcpy(sensor_macs, memory_getSensorMacs().macs, sizeof(sensor_macs));
 
   // invalidate all last sensor messages and get the saved ones
   for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)

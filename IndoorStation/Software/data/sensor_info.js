@@ -29,3 +29,30 @@ if (!!window.EventSource)
         document.getElementById("pairing_sensor_number").innerHTML = (obj.pairing_id + 1);
 	}, false);
 }
+
+function submitMacMessage()
+{
+    alert("New MAC address was saved");
+    setTimeout(function(){ document.location.reload(false); }, 500);   
+}
+
+document.getElementById("mac_sensor_1").addEventListener('keyup', format_macs, false);
+document.getElementById("mac_sensor_2").addEventListener('keyup', format_macs, false);
+
+function format_macs(evt)
+{ 
+    var mac = evt.currentTarget.value;
+	var macs = mac.split('');
+	var colons = [2, 5, 8, 11, 14];
+	for (var col in colons)
+	{
+		if (colons[col] <= macs.length)
+		{
+			if (macs[colons[col]] !== ":")
+			{
+				macs.splice(colons[col], 0, ":");
+			}
+		}
+	}
+	evt.currentTarget.value = macs.join('').substring(0,17);
+}

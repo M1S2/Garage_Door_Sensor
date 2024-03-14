@@ -6,6 +6,7 @@
 #include "structures.h"
 
 #define FILENAME_HISTORY_SENSOR_FORMAT		"/historySensor%d.txt"
+#define FILENAME_SENSOR_MACS		        "/sensorMacs.txt"
 
 /**
  * Delete all sensor history files.
@@ -45,5 +46,23 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
  * @return True if message was added; otherwise false
  */
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
+
+
+typedef struct MacArrStruct
+{
+    uint8_t macs[NUM_SUPPORTED_SENSORS][6];
+}MacArrStruct_t;
+
+/**
+ * Save the given sensor MAC addresses
+ * @param sensor_macs Sensor MAC addresses to save
+*/
+void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6]);
+
+/**
+ * Read the saved sensor MAC addresses
+ * @return Structure with internal 2D array containing the MAC addresses for all sensors
+*/
+MacArrStruct_t memory_getSensorMacs();
 
 #endif

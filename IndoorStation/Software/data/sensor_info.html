@@ -25,13 +25,39 @@
 			<div class="cards">
 				<div class="card sensorinfo1">
 					<h2>#1 - INFO</h2>
-					<p>MAC: <span id="mac1">?</span></p>
+					<p>MAC:</p>
+
+					<form action="/mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
+						<input 	class="input_sensor1"
+								id="mac_sensor_1" required
+								name="mac_sensor_1"
+								type="text"
+								value="%MAC_SENSOR1%"
+								placeholder="00:00:00:00:00:00"
+								pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
+						<input class="submitinput_sensor" type="submit" value="Change">
+					</form>
+					<iframe style="display:none" name="hidden-form"></iframe>
+
 					<p>SW Version: <span id="sw1">?</span></p>
 					<a href="/pairing?sensor=1"><button class="button">Start Pairing #1</button></a>
 				</div>
 				<div class="card sensorinfo2">
 					<h2>#2 - INFO</h2>
-					<p>MAC: <span id="mac2">?</span></p>
+					<p>MAC:</p>
+					
+					<form action="/mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
+						<input 	class="input_sensor2"
+								id="mac_sensor_2" required
+								name="mac_sensor_2"
+								type="text"
+								value="%MAC_SENSOR2%"
+								placeholder="00:00:00:00:00:00"
+								pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
+						<input class="submitinput_sensor" type="submit" value="Change">
+					</form>
+					<iframe style="display:none" name="hidden-form"></iframe>
+
 					<p>SW Version: <span id="sw2">?</span></p>
 					<a href="/pairing?sensor=2"><button class="button">Start Pairing #2</button></a>
 				</div>
@@ -54,3 +80,6 @@
 	<script src="sensor_info.js"></script>
 	<script src="common.js"></script>
 </html>
+
+
+<!-- https://vitalets.github.io/x-editable/docs.html -->
