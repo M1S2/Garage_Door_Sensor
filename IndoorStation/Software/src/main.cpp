@@ -154,6 +154,20 @@ String processor(const String& var)
             return macAddrStr;
         }
     }
+    else if(var.startsWith("NUM_MESSAGES_"))
+    {
+        String sensorIndexStr = var;
+        sensorIndexStr.replace("NUM_MESSAGES_","");
+        long sensorIndex = sensorIndexStr.toInt() - 1;
+        if(sensorIndex >= NUM_SUPPORTED_SENSORS)
+        {
+            return "NUM_MESSAGES_ index to large!";
+        }
+        else
+        {
+            return String(memory_getNumberSensorMessages(sensorIndex));
+        }
+    }
     return String();
 }
 
