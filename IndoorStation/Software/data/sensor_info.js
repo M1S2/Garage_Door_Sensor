@@ -32,7 +32,7 @@ if (!!window.EventSource)
 
 function submitMacMessage()
 {
-    alert("New MAC address was saved");
+    alert("Neue MAC Adresse gespeichert.");
     setTimeout(function(){ document.location.reload(false); }, 500);   
 }
 

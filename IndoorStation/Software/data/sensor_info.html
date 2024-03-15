@@ -1,7 +1,8 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Garage Door Sensor Status Sensor Info</title>
+		<title>Garagen Tor Status Sensor Info</title>
+		<meta content="text/html; charset=UTF-8" http-equiv="content-type">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 		<link rel="icon" href="data:,">
@@ -9,12 +10,12 @@
 	</head>
 	<body>
 		<div class="topnav">	
-			<a href="/index.html" id="Heading">Garage Door Sensor Status</a>
+			<a href="/index.html" id="Heading">Garagen Tor Status</a>
 			<div id="SubHeading">Sensor Info</div>
 			<!-- Navigation links (hidden by default) -->
 			<div id="menuElements">
-				<a href="/index.html">Dashboard</a>
-				<a href="/sensor_history.html">Sensor History</a>
+				<a href="/index.html">Übersicht</a>
+				<a href="/sensor_history.html">Sensor Daten</a>
 			</div>
 			<!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
 			<a href="javascript:void(0);" class="icon" onclick="menuClicked()">
@@ -35,11 +36,11 @@
 								value="%MAC_SENSOR1%"
 								placeholder="00:00:00:00:00:00"
 								pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
-						<input class="submitinput_sensor" type="submit" value="Change">
+						<input class="submitinput_sensor" type="submit" value="Übernehmen">
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
 
-					<p>Number received messages: %NUM_MESSAGES_1%</p>
+					<p>Anzahl empfangene Nachrichten: %NUM_MESSAGES_1%</p>
 
 					<p>SW Version: <span id="sw1">?</span></p>
 				</div>
@@ -55,17 +56,17 @@
 								value="%MAC_SENSOR2%"
 								placeholder="00:00:00:00:00:00"
 								pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
-						<input class="submitinput_sensor" type="submit" value="Change">
+						<input class="submitinput_sensor" type="submit" value="Übernehmen">
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
 
-					<p>Number received messages: %NUM_MESSAGES_2%</p>
+					<p>Anzahl empfangene Nachrichten: %NUM_MESSAGES_2%</p>
 
 					<p>SW Version: <span id="sw2">?</span></p>
 				</div>
 			</div>
 			
-			<p>Indoor MAC-Adress is: %INDOOR_STATION_MAC%</p>
+			<p>Eigene MAC-Adresse: %INDOOR_STATION_MAC%</p>
 		</div>
 	</body>
 	<script src="sensor_info.js"></script>

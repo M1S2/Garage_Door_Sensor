@@ -51,10 +51,10 @@ var chart_accu = new Highcharts.Chart(
 		renderTo : 'chart-accu',
         zoomType: 'xy'
 	},
-	title: { text: 'Accu Percentage' },
+	title: { text: 'Akku Ladezustand' },
 	series: 
 	[{
-		name: 'Accu Percentage #1',
+		name: 'Akku Ladezustand #1',
 		showInLegend: false,
 		data: [],
 		tooltip: 
@@ -64,7 +64,7 @@ var chart_accu = new Highcharts.Chart(
 		color: '#FD7E14'
 	},
 	{
-		name: 'Accu Percentage #2',
+		name: 'Akku Ladezustand #2',
 		showInLegend: false,
 		data: [],
 		tooltip: 
@@ -92,7 +92,7 @@ var chart_accu = new Highcharts.Chart(
 	},
 	yAxis: 
 	{
-		title: { text: 'Percentage (%)' }
+		title: { text: 'Ladezustand (%)' }
 	},
 	credits: { enabled: false }
 });
@@ -105,17 +105,17 @@ var chart_pinState = new Highcharts.Chart(
 		renderTo : 'chart-pinState',
         zoomType: 'xy'
 	},
-	title: { text: 'Door State' },
+	title: { text: 'Tor Status' },
 
 	series: 
 	[{
-		name: 'Door State #1',
+		name: 'Tor Status #1',
 		showInLegend: false,
 		data: [],
 		color: '#FD7E14'
 	},
 	{
-		name: 'Door State #2',
+		name: 'Tor Status #2',
 		showInLegend: false,
 		data: [],
 		color: '#1B78E2'
@@ -129,7 +129,7 @@ var chart_pinState = new Highcharts.Chart(
 			{ 
 				enabled: true,
 				formatter: function () {
-					return (this.point.y == 0 ? 'Open' : (this.point.y == 1 ? 'Closed' : ''));
+					return (this.point.y == 0 ? 'Auf' : (this.point.y == 1 ? 'Zu' : ''));
 				}
 			}
 		}
@@ -141,10 +141,10 @@ var chart_pinState = new Highcharts.Chart(
 	},
 	yAxis: 
 	{
-		title: { text: 'Door State' },
+		title: { text: 'Tor Status' },
 		labels: {
 			formatter: function () {
-				return (this.value == 0 ? 'Open' : (this.value == 1 ? 'Closed' : ''));
+				return (this.value == 0 ? 'Auf' : (this.value == 1 ? 'Zu' : ''));
 			}
 		}
 	},
