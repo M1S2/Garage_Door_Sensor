@@ -18,7 +18,6 @@
 #include "battery.h"
 #include "wifiHandling.h"
 #include "timeHandling.h"
-#include "sensorPairing.h"
 #include "otaUpdate.h"
 #include "memory.h"
 
@@ -67,12 +66,6 @@ void btnHandler_reset_longClick(Button2& btn)
   ESP.restart();
 }
 
-// Move to the next sensor pairing on double click on the show status button
-void btnHandler_show_status_doubleClick(Button2& btn)
-{
-  sensorPairing_MoveToNext(&events_dashboard);
-}
-
 void btnHandler_show_status_click(Button2& btn)
 {
   Serial.println("Show Status Click (used to emulate sensor message for the first sensor for the moment)");
@@ -84,11 +77,8 @@ void btnHandler_show_status_click(Button2& btn)
   messageReceived((uint8_t*)&sensor_macs[0], (uint8_t*)&emulated_message, 0 /* len not used */);
 }
 
-// Stop the sensor pairing on long click on the show status button
 void btnHandler_show_status_longClick(Button2& btn)
-{
-  sensorPairing_Stop(&events_dashboard);
-  
+{  
   Serial.println("Clear the memory (for testing purposes!)");
   memory_reset();
   // invalidate all last sensor messages
@@ -121,20 +111,7 @@ void btnHandler_wifi_longClick(Button2& btn)
 
 String processor(const String& var)
 {
-    if(var == "PAIRING_SENSOR_NUMBER")
-    {
-        switch(sensorPairingMode)
-        {
-            case PAIRING_MODE_SENSOR1: return "1";
-            case PAIRING_MODE_SENSOR2: return "2";
-            default: return "NONE";       // This will never be visible (hidden by the PAIRING_STATUS_DISPLAY_STYLE placeholder)
-        }
-    }
-    else if(var == "PAIRING_STATUS_DISPLAY_STYLE")
-    {
-        return (sensorPairingMode == PAIRING_MODE_NONE) ? "style=\"display: none\"" : "style=\"display: block\"";
-    }
-    else if(var == "INDOOR_STATION_MAC")
+    if(var == "INDOOR_STATION_MAC")
     {
         return WiFi.macAddress();
     }
@@ -228,23 +205,6 @@ void initWebserverFiles()
   server.onNotFound([](AsyncWebServerRequest *request)
   {
     request->send(404, "text/plain", "Not found");
-  });
-
-  // Send a GET request to <ESP_IP>/pairing?sensor=<sensorIndex> or pairing?abort
-  server.on("/pairing", HTTP_GET, [] (AsyncWebServerRequest *request)
-  {
-    String inputMessage;
-    if (request->hasParam("abort"))
-    {
-      sensorPairing_Stop(&events_dashboard);
-      updateLeds_sensorStatus();
-    }
-    else if(request->hasParam("sensor"))
-    {
-      inputMessage = request->getParam("sensor")->value();
-      sensorPairing_Start(inputMessage.toInt() - 1, &events_dashboard);
-    }
-    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
   });
 
   // Send a GET request to <ESP_IP>/mac_sensor
@@ -348,7 +308,6 @@ void setup()
   btn_show_status.setLongClickTime(500);
   btn_show_status.setDoubleClickTime(400);
   btn_show_status.setClickHandler(btnHandler_show_status_click);
-  btn_show_status.setDoubleClickHandler(btnHandler_show_status_doubleClick);
   btn_show_status.setLongClickDetectedHandler(btnHandler_show_status_longClick);
   btn_wifi.begin(BTN_WIFI_PIN);   //INPUT_PULLUP
   btn_wifi.setDebounceTime(100);
@@ -405,7 +364,6 @@ void setup()
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
 
-  sensorPairing_Stop(&events_dashboard);
   updateLeds_sensorStatus();
 }
 

@@ -42,7 +42,6 @@
 					<p>Number received messages: %NUM_MESSAGES_1%</p>
 
 					<p>SW Version: <span id="sw1">?</span></p>
-					<a href="/pairing?sensor=1"><button class="button">Start Pairing #1</button></a>
 				</div>
 				<div class="card sensorinfo2">
 					<h2>#2 - INFO</h2>
@@ -63,19 +62,7 @@
 					<p>Number received messages: %NUM_MESSAGES_2%</p>
 
 					<p>SW Version: <span id="sw2">?</span></p>
-					<a href="/pairing?sensor=2"><button class="button">Start Pairing #2</button></a>
 				</div>
-			</div>
-		
-			<div id="pairing_status" %PAIRING_STATUS_DISPLAY_STYLE%>
-				<p><span>Pairing is done for sensor #</span><span id="pairing_sensor_number">%PAIRING_SENSOR_NUMBER%</span></p>
-				<div class="progress-ring-indeterminate-outer-circle">
-					<div class="progress-ring-indeterminate-inner-circle">
-					</div>
-				</div>
-				</br>
-
-				<a href="/pairing?abort"><button class="button">Abort</button></a>
 			</div>
 			
 			<p>Indoor MAC-Adress is: %INDOOR_STATION_MAC%</p>
