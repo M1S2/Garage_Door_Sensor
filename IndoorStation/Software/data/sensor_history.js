@@ -44,14 +44,24 @@ if (!!window.EventSource)
 	}, false);
 }
 
+var style = getComputedStyle(document.body);
+
 var chart_accu = new Highcharts.Chart(
 {
 	chart:
 	{ 
 		renderTo : 'chart-accu',
-        zoomType: 'xy'
+        zoomType: 'xy',
+		backgroundColor: style.getPropertyValue('--background-color'),
 	},
-	title: { text: 'Akku Ladezustand' },
+	title: 
+	{ 
+		text: 'Akku Ladezustand',
+		style:
+		{
+            color: style.getPropertyValue('--text-color')
+        }
+	},
 	series: 
 	[{
 		name: 'Akku Ladezustand #1',
@@ -61,7 +71,7 @@ var chart_accu = new Highcharts.Chart(
 		{
 			pointFormat: '<b>{point.y:.1f}%</b>'
         },
-		color: '#FD7E14'
+		color: style.getPropertyValue('--sensor1-color')
 	},
 	{
 		name: 'Akku Ladezustand #2',
@@ -71,7 +81,7 @@ var chart_accu = new Highcharts.Chart(
 		{
 			pointFormat: '<b>{point.y:.1f}%</b>'
         },
-		color: '#1B78E2'
+		color: style.getPropertyValue('--sensor2-color')
 	}],
 	plotOptions: 
 	{
@@ -86,13 +96,37 @@ var chart_accu = new Highcharts.Chart(
 		}
 	},
 	xAxis: 
-	{ 
+	{
+		labels:
+		{
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			}
+		},
 		type: 'datetime',
-		dateTimeLabelFormats: { second: '%d.%m.%y %H:%M:%S' }
+		dateTimeLabelFormats: { second: '%d.%m.%y %H:%M:%S' },
+		lineColor: style.getPropertyValue('--text-color'),
+		tickColor: style.getPropertyValue('--text-color')
 	},
 	yAxis: 
 	{
-		title: { text: 'Ladezustand (%)' }
+		labels:
+		{
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			}
+		},
+		title: 
+		{ 
+			text: 'Ladezustand (%)',
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			}
+		},
+		gridLineColor: style.getPropertyValue('--chart-grid-line-color')
 	},
 	credits: { enabled: false }
 });
@@ -103,22 +137,29 @@ var chart_pinState = new Highcharts.Chart(
 	chart:
 	{ 
 		renderTo : 'chart-pinState',
-        zoomType: 'xy'
+        zoomType: 'xy',
+		backgroundColor: style.getPropertyValue('--background-color')
 	},
-	title: { text: 'Tor Status' },
-
+	title:
+	{ 
+		text: 'Tor Status',
+		style:
+		{
+            color: style.getPropertyValue('--text-color')
+        }
+	},
 	series: 
 	[{
 		name: 'Tor Status #1',
 		showInLegend: false,
 		data: [],
-		color: '#FD7E14'
+		color: style.getPropertyValue('--sensor1-color')
 	},
 	{
 		name: 'Tor Status #2',
 		showInLegend: false,
 		data: [],
-		color: '#1B78E2'
+		color: style.getPropertyValue('--sensor2-color')
 	}],
 	plotOptions: 
 	{
@@ -128,7 +169,8 @@ var chart_pinState = new Highcharts.Chart(
 			dataLabels: 
 			{ 
 				enabled: true,
-				formatter: function () {
+				formatter: function ()
+				{
 					return (this.point.y == 0 ? 'Auf' : (this.point.y == 1 ? 'Zu' : ''));
 				}
 			}
@@ -136,17 +178,40 @@ var chart_pinState = new Highcharts.Chart(
 	},
 	xAxis: 
 	{ 
+		labels:
+		{
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			}
+		},
 		type: 'datetime',
-		dateTimeLabelFormats: { second: '%d.%m.%y %H:%M:%S' }
+		dateTimeLabelFormats: { second: '%d.%m.%y %H:%M:%S' },
+		lineColor: style.getPropertyValue('--text-color'),
+		tickColor: style.getPropertyValue('--text-color')
 	},
 	yAxis: 
 	{
-		title: { text: 'Tor Status' },
-		labels: {
-			formatter: function () {
+		title: 
+		{ 
+			text: 'Tor Status',
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			}
+		},
+		labels: 
+		{
+			style:
+			{
+				color: style.getPropertyValue('--text-color')
+			},
+			formatter: function () 
+			{
 				return (this.value == 0 ? 'Auf' : (this.value == 1 ? 'Zu' : ''));
 			}
-		}
+		},
+		gridLineColor: style.getPropertyValue('--chart-grid-line-color')
 	},
 	credits: { enabled: false }
 });

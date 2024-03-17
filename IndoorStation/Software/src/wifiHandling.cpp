@@ -67,6 +67,12 @@ void wifiHandling_wifiManagerSaveCB()
     // events 
     events_dashboard.onConnect([](AsyncEventSourceClient *client)
     {
+        if(client->lastId())
+        {
+            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+        }
+        client->send("configure reconnect delay to 10 seconds!", NULL, millis(), 10000);
+
         updateWebsiteMain();            // Update the values on the website when it is opened (or reloaded in the browser)
     });
     events_sensorHistory.onConnect([](AsyncEventSourceClient *client)
@@ -75,7 +81,7 @@ void wifiHandling_wifiManagerSaveCB()
         {
             Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
         }
-        client->send("configure reconnect delay to 5 seconds!", NULL, millis(), 5000);
+        client->send("configure reconnect delay to 10 seconds!", NULL, millis(), 10000);
 
         updateWebsiteSensorHistory();   // Update the sensor history values on the website when it is opened (or reloaded in the browser)
     });

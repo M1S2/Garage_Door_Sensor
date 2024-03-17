@@ -11,6 +11,7 @@ p
 body 
 {  
 	margin: 0;
+	background-color: var(--background-color);
 }
 
 /* ----------------------------------------------------------------------------------------- */
@@ -19,8 +20,8 @@ body
 .topnav 
 { 
 	overflow: hidden; 
-	background-color: #333333;
-	color: white; 
+	background-color: var(--accent2-color);
+	color: var(--accent-text-color); 
 	font-size: 1.7rem;
 	position: relative;
 }
@@ -34,7 +35,7 @@ body
 /* Style navigation menu links */
 .topnav a 
 {
-	color: white;
+	color: var(--accent-text-color);
 	padding: 14px 16px;
 	text-decoration: none;
 	font-size: 20px;
@@ -44,7 +45,7 @@ body
 /* Style the hamburger menu */
 .topnav a.icon 
 {
-	background: #000000;
+	background: var(--hamburger-menu-color);
 	display: block;
 	position: absolute;
 	right: 0;
@@ -54,38 +55,39 @@ body
 /* Add a grey background color on mouse-over */
 .topnav a:hover 
 {
-	background-color: #DDDDDD;
-	color: #000000;
+	background-color: var(--mouse-over-background);
+	color: var(--mouse-over-text-color);
 }
 
 .topnav #Heading
 {
 	font-size: 40px;
-	background-color: #04AA6D;
-	color: white;
+	background-color: var(--accent1-color);
+	color: var(--accent-text-color);
 }
 
 .topnav #SubHeading
 {
 	font-size: 30px;
-	background-color: #04AA6D;
-	color: white;
+	background-color: var(--accent1-color);
+	color: var(--accent-text-color);
 }
 
 /* ----------------------------------------------------------------------------------------- */
 
 .content 
 { 
-	padding: 20px; 
+	padding: 20px;
+	color: var(--text-color);
 }
 .timestamp 
 { 
-	color: #999999; 
+	color: var(--text-color); 
 }
 .card 
 { 
-	background-color: white; 
-	box-shadow: 2px 2px 12px 1px #8C8C8C80; /*rgba*/ 
+	background-color: var(--background-color); 
+	box-shadow: 2px 2px 12px 1px var(--box-shadow-color); /*rgba*/ 
 }
 .cards 
 { 
@@ -101,11 +103,11 @@ body
 }
 .card.sensorinfo1
 { 
-	color: #FD7E14; 
+	color: var(--sensor1-color);
 }
 .card.sensorinfo2
 { 
-	color: #1B78E2;
+	color: var(--sensor2-color);
 }
 	
 /* -----------------------------------------------------------------------------------------
@@ -113,18 +115,18 @@ Form */
 .input_sensor1
 {
 	font-size: 1.2rem;
-	color: #FD7E14; 
+	color: var(--sensor1-color);
 }
 .input_sensor2
 {
 	font-size: 1.2rem;
-	color: #1B78E2; 
+	color: var(--sensor2-color); 
 }
 .submitinput_sensor
 {
-	background-color: #04AA6D;
+	background-color: var(--accent1-color);
 	border: none; 
-	color: white; 
+	color: var(--accent-text-color); 
 	padding: 5px 20px; 
 	text-decoration: none; 
 	font-size: 20px; 
@@ -135,6 +137,44 @@ Form */
 /* Add a grey background color on mouse-over */
 .submitinput_sensor:hover 
 {
-	background-color: #DDDDDD;
-	color: #000000;
+	background-color: var(--mouse-over-background);
+	color: var(--mouse-over-text-color);
+}
+
+/* ----------------------------------------------------------------------------------------- */
+
+:root 
+{
+	--background-color: #FFFFFF;
+	--text-color: #121416d8;
+	--box-shadow-color: #8C8C8C80; /*rgba*/ 
+	--accent1-color: #228b22;
+	--accent2-color: #009900;
+	--accent-text-color: #FFFFFF;
+	--sensor1-color: #FD7E14;
+	--sensor2-color: #1B78E2;
+	--hamburger-menu-color: #000000;
+	--mouse-over-background: #DDDDDD;
+	--mouse-over-text-color: #000000;
+	--chart-grid-line-color: #CCCCCC;
+}
+
+/* Styles for users who prefer dark mode at the OS level */
+@media (prefers-color-scheme: dark)
+{
+	:root
+	{
+		--background-color: #212a2e;
+		--text-color: #F7F8F8;
+		--box-shadow-color: #8C8C8C80; /*rgba*/
+		--accent1-color: #228b22;
+		--accent2-color: #009900;
+		--accent-text-color: #FFFFFF;
+		--sensor1-color: #FD7E14;
+		--sensor2-color: #1B78E2;
+		--hamburger-menu-color: #000000;
+		--mouse-over-background: #DDDDDD;
+		--mouse-over-text-color: #000000;
+		--chart-grid-line-color: #666666;
+	}
 }

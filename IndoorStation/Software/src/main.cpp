@@ -317,7 +317,7 @@ void setup()
   btn_wifi.setLongClickDetectedHandler(btnHandler_wifi_longClick);
 
   leds.init();
-  leds.setBrightness(20);
+  leds.setBrightness(12);
   leds_allOff();
   leds.start();
 
