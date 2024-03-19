@@ -5,13 +5,19 @@
 #include "config.h"
 #include "structures.h"
 
-#define FILENAME_HISTORY_SENSOR_FORMAT		"/historySensor%d.txt"
-#define FILENAME_SENSOR_MACS		        "/sensorMacs.txt"
+#define FILENAME_HISTORY_SENSOR_FORMAT		"/historySensor%d.bin"
+#define FILENAME_SENSOR_MACS		        "/sensorMacs.bin"
 
 /**
- * Delete all sensor history files.
+ * Delete all saved data files (sensor history, sensor MACs).
  */
 void memory_reset();
+
+/**
+ * Delete the sensor history data for the requested sensor.
+ * @param sensorIndex Index of the sensor for which the data file is deleted. Use -1 to delete all sensor history data files.
+ */
+void memory_removeSensorHistory(uint8_t sensorIndex);
 
 /**
  * Read all sensor history files and show the decoded content on the Serial output.

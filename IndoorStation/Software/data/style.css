@@ -20,8 +20,7 @@ body
 .topnav 
 { 
 	overflow: hidden; 
-	background-color: var(--accent2-color);
-	color: var(--accent-text-color); 
+	background-color: var(--hamburger-menu-color);
 	font-size: 1.7rem;
 	position: relative;
 }
@@ -35,7 +34,7 @@ body
 /* Style navigation menu links */
 .topnav a 
 {
-	color: var(--accent-text-color);
+	color: var(--menu-text-color);
 	padding: 14px 16px;
 	text-decoration: none;
 	font-size: 20px;
@@ -50,6 +49,7 @@ body
 	position: absolute;
 	right: 0;
 	top: 0;
+	color: var(--menu-text-color);
 }
 
 /* Add a grey background color on mouse-over */
@@ -122,7 +122,7 @@ Form */
 	font-size: 1.2rem;
 	color: var(--sensor2-color); 
 }
-.submitinput_sensor
+.submit_button
 {
 	background-color: var(--accent1-color);
 	border: none; 
@@ -135,10 +135,16 @@ Form */
 }
 	
 /* Add a grey background color on mouse-over */
-.submitinput_sensor:hover 
+.submit_button:hover 
 {
 	background-color: var(--mouse-over-background);
 	color: var(--mouse-over-text-color);
+}
+
+.submit_button:disabled 
+{
+	background-color: var(--disabled-background);
+	color: var(--disabled-text-color);
 }
 
 /* ----------------------------------------------------------------------------------------- */
@@ -149,14 +155,16 @@ Form */
 	--text-color: #121416d8;
 	--box-shadow-color: #8C8C8C80; /*rgba*/ 
 	--accent1-color: #228b22;
-	--accent2-color: #009900;
 	--accent-text-color: #FFFFFF;
 	--sensor1-color: #FD7E14;
 	--sensor2-color: #1B78E2;
-	--hamburger-menu-color: #000000;
+	--hamburger-menu-color: #555555;
+	--menu-text-color: #FFFFFF;
 	--mouse-over-background: #DDDDDD;
 	--mouse-over-text-color: #000000;
-	--chart-grid-line-color: #CCCCCC;
+	--chart-grid-line-color: #CCCCCC; 
+	--disabled-background: #EEEEEE;
+	--disabled-text-color: #FFFFFF;
 }
 
 /* Styles for users who prefer dark mode at the OS level */
@@ -168,13 +176,15 @@ Form */
 		--text-color: #F7F8F8;
 		--box-shadow-color: #8C8C8C80; /*rgba*/
 		--accent1-color: #228b22;
-		--accent2-color: #009900;
 		--accent-text-color: #FFFFFF;
 		--sensor1-color: #FD7E14;
 		--sensor2-color: #1B78E2;
-		--hamburger-menu-color: #000000;
+		--hamburger-menu-color: #555555;
+		--menu-text-color: #FFFFFF;
 		--mouse-over-background: #DDDDDD;
 		--mouse-over-text-color: #000000;
 		--chart-grid-line-color: #666666;
+		--disabled-background: #222222;
+		--disabled-text-color: #FFFFFF;
 	}
 }

@@ -6,13 +6,27 @@
 
 void memory_reset()
 {
-	for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
-    {
-		char strBuf[32];
-		sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, i);
-		LittleFS.remove(strBuf);
-	}
+    memory_removeSensorHistory(-1);
     LittleFS.remove(FILENAME_SENSOR_MACS);
+}
+
+void memory_removeSensorHistory(uint8_t sensorIndex)
+{
+    if(sensorIndex == -1)
+    {
+        for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+        {
+            char strBuf[32];
+            sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, i);
+            LittleFS.remove(strBuf);
+        }
+    }
+    else
+    {
+        char strBuf[32];
+        sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+        LittleFS.remove(strBuf);
+    }
 }
 
 void memory_showMemoryContent()

@@ -19,15 +19,17 @@ if (!!window.EventSource)
 	{
 		console.log("message", e.data);
 	}, false);
- 
-    // Update the pairing status when the buttons of the indoor station are pressed
-	source.addEventListener('new_sensor_pairing_status', function(e)
-	{
-		console.log("new_sensor_pairing_status", e.data);
-		var obj = JSON.parse(e.data);
-		document.getElementById("pairing_status").style.display = ((obj.pairing_active == true) ? 'block' : 'none');
-        document.getElementById("pairing_sensor_number").innerHTML = (obj.pairing_id + 1);
-	}, false);
+}
+
+function bodyLoaded()
+{
+	// Disable the download data buttons if the number of messages equals 0
+
+	var isNumMsg1Zero = document.getElementById("num_msg_1").innerText == "0";
+	document.getElementById("submit_download_1").disabled = isNumMsg1Zero;
+
+	var isNumMsg1Zero = document.getElementById("num_msg_2").innerText == "0";
+	document.getElementById("submit_download_2").disabled = isNumMsg1Zero;
 }
 
 function submitMacMessage()

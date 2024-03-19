@@ -4,8 +4,8 @@
 		<title>Garagen Tor Status</title>
 		<meta content="text/html; charset=UTF-8" http-equiv="content-type">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-		<link rel="icon" href="data:,">
+		<!-- https://fonts.google.com/icons -->
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />		
 		<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
 	<body>
@@ -15,21 +15,21 @@
 			<div id="SubHeading">Übersicht</div>
 			<!-- Navigation links (hidden by default) -->
 			<div id="menuElements">
-				<a href="/sensor_info.html">Sensor Info</a>
-				<a href="/sensor_history.html">Sensor Daten</a>
+				<a href="/sensor_management.html">Sensor Verwaltung</a>
+				<a href="/sensor_history.html">Sensor Diagramme</a>
 			</div>
 			<!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
 			<a href="javascript:void(0);" class="icon" onclick="menuClicked()">
-				<i class="fa fa-bars"></i>
+				<i class="material-symbols-outlined" style="vertical-align: middle">menu</i>
 			</a>	
 		</div>
 		<div class="content">
 			<div class="cards">
 				<div class="card sensorinfo1">
 					<h2>#1</h2>
-					<h4><i class="fas fa-door-open"></i> STATUS</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">door_open</i> STATUS</h4>
 					<p><span class="reading" id="state0">?</span></p>
-					<h4><i class="fas fa-battery-half"></i> BATTERIE</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">battery_horiz_050</i> BATTERIE</h4>
 					<p><span class="reading"><span id="percentage0">?</span> %</span></p>
 					<p><span class="reading"><span id="voltage0">?</span> V</span></p>
 					<br>
@@ -38,9 +38,9 @@
 				
 				<div class="card sensorinfo2">
 					<h2>#2</h2>
-					<h4><i class="fas fa-door-open"></i> STATUS</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">door_open</i> STATUS</h4>
 					<p><span class="reading" id="state1">?</span></p>
-					<h4><i class="fas fa-battery-half"></i> BATTERIE</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">battery_horiz_050</i> BATTERIE</h4>
 					<p><span class="reading"><span id="percentage1">?</span> %</span></p>
 					<p><span class="reading"><span id="voltage1">?</span> V</span></p>
 					<br>

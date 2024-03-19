@@ -48,6 +48,22 @@ void updateLeds_sensorStatus()
   }
 }
 
+void updateLastSensorMessages()
+{
+  // invalidate all last sensor messages and get the saved ones
+  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    sensor_messages_latest[i].timestamp = -1;
+
+    if(memory_getNumberSensorMessages(i) > 0)
+    {
+      sensor_messages_latest[i] = memory_getLatestSensorMessagesForSensor(i);
+    }
+  }
+
+  updateLeds_sensorStatus();
+}
+
 /**********************************************************************/
 
 void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
@@ -148,6 +164,46 @@ String processor(const String& var)
     return String();
 }
 
+void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+{
+  if (!index)
+  {
+    // Set this variable to true, if the given filename is ok to be uploaded.
+    // At the moment only the sensor history data files are allowed for the number of supported sensors.
+    bool fileAllowedToUpload = false;
+    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+      char strBuf[32];
+      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, i);
+      if("/" + filename == strBuf)
+      {
+        fileAllowedToUpload = true;
+      }
+    }
+
+    if(fileAllowedToUpload)
+    {
+      // open the file (by the requested filename) on first call and store the file handle in the request object
+      request->_tempFile = LittleFS.open("/" + filename, "w");
+    }
+  }
+
+  if (len && request->_tempFile)    // last part is to check that file was opened
+  {
+    // stream the incoming chunk to the opened file
+    request->_tempFile.write(data, len);
+  }
+
+  if (final && request->_tempFile)    // last part is to check that file was opened
+  {
+    // close the file handle as the upload is now done
+    request->_tempFile.close();
+    request->redirect("/sensor_management.html");     // Only redirect if the file was uploaded. If a not allowed file was given, the upload ends in the <IP>/upload_data page (white page)
+
+    updateLastSensorMessages();
+  }
+}
+
 void initWebserverFiles()
 {
    // Route for root index.html
@@ -166,10 +222,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/sensor_history.html", "text/html"); 
   });
 
-  // Route for root sensor_info.html
-  server.on("/sensor_info.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root sensor_management.html
+  server.on("/sensor_management.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
+    request->send(LittleFS, "/sensor_management.html", "text/html", false, processor); 
   });
 
   // Route for root style.css
@@ -196,10 +252,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/sensor_history.js", "text/javascript"); 
   });
 
-  // Route for root sensor_info.js
-  server.on("/sensor_info.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root sensor_management.js
+  server.on("/sensor_management.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_info.js", "text/javascript"); 
+    request->send(LittleFS, "/sensor_management.js", "text/javascript"); 
   });
 
   server.onNotFound([](AsyncWebServerRequest *request)
@@ -213,18 +269,16 @@ void initWebserverFiles()
     String inputMessage;
     int8_t sensorIndex = -1;
     uint tmp_mac[6];
-    if(request->hasParam("mac_sensor_1"))
+    if(request->hasParam("sensorIndex"))
     {
-      sensorIndex = 0;
-      inputMessage = request->getParam("mac_sensor_1")->value();
+      sensorIndex = request->getParam("sensorIndex")->value().toInt();
     }
-    else if(request->hasParam("mac_sensor_2"))
+    if(request->hasParam("mac"))
     {
-      sensorIndex = 1;
-      inputMessage = request->getParam("mac_sensor_2")->value();
+      inputMessage = request->getParam("mac")->value();
     }
 
-    if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+    if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS && !inputMessage.isEmpty())
     {
       sscanf(inputMessage.c_str(), "%02X:%02X:%02X:%02X:%02X:%02X", &tmp_mac[0], &tmp_mac[1], &tmp_mac[2], &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
       for(uint8_t i = 0; i < 6; i++)
@@ -236,8 +290,43 @@ void initWebserverFiles()
       memory_saveSensorMacs(sensor_macs);
     }
 
-    request->send(LittleFS, "/sensor_info.html", "text/html", false, processor); 
+    request->redirect("/sensor_management.html");
   });
+
+  // Send a GET request to <ESP_IP>/download_data_sensor1
+  server.on("/download_data", HTTP_GET, [] (AsyncWebServerRequest *request)
+  {
+    int8_t sensorIndex = -1;
+    if(request->hasParam("sensorIndex"))
+    {
+      sensorIndex = request->getParam("sensorIndex")->value().toInt();
+    }
+    //Download data of the requested sensor
+    char strBuf[32];
+	  sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+    request->send(LittleFS, strBuf, String(), true);
+  });
+
+  // upload a file to /upload_data
+  server.on("/upload_data", HTTP_POST, [](AsyncWebServerRequest *request)
+  {
+    request->send(200);
+  }, onUpload);
+
+  // Send a GET request to <ESP_IP>/remove_data
+  server.on("/remove_data", HTTP_GET, [] (AsyncWebServerRequest *request)
+  {
+    String inputMessage;
+    int8_t sensorIndex = -1;
+    if(request->hasParam("sensorIndex"))
+    {
+      sensorIndex = request->getParam("sensorIndex")->value().toInt();
+    }
+    memory_removeSensorHistory(sensorIndex);
+    updateLastSensorMessages();
+    request->redirect("/sensor_management.html");
+  });
+
 }
 
 void updateWebsiteMainForSensor(uint8_t sensor_id, message_sensor_timestamped_t sensor_message_timestamped)
@@ -331,16 +420,7 @@ void setup()
   // Load saved sensor_macs
   memcpy(sensor_macs, memory_getSensorMacs().macs, sizeof(sensor_macs));
 
-  // invalidate all last sensor messages and get the saved ones
-  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
-  {
-    sensor_messages_latest[i].timestamp = -1;
-
-    if(memory_getNumberSensorMessages(i) > 0)
-    {
-      sensor_messages_latest[i] = memory_getLatestSensorMessagesForSensor(i);
-    }
-  }
+  updateLastSensorMessages();
 
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
@@ -363,8 +443,6 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
-
-  updateLeds_sensorStatus();
 }
 
 /**********************************************************************/
