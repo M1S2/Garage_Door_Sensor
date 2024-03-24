@@ -8,7 +8,6 @@
 
 AsyncWebServer server(80);
 AsyncEventSource events_dashboard("/events_dashboard");
-AsyncEventSource events_sensorHistory("/events_sensorHistory");
 
 DNSServer dns;
 AsyncWiFiManager wifiManager(&server, &dns);
@@ -75,18 +74,7 @@ void wifiHandling_wifiManagerSaveCB()
 
         updateWebsiteMain();            // Update the values on the website when it is opened (or reloaded in the browser)
     });
-    events_sensorHistory.onConnect([](AsyncEventSourceClient *client)
-    {
-        if(client->lastId())
-        {
-            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
-        }
-        client->send("configure reconnect delay to 10 seconds!", NULL, millis(), 10000);
-
-        updateWebsiteSensorHistory();   // Update the sensor history values on the website when it is opened (or reloaded in the browser)
-    });
     server.addHandler(&events_dashboard);
-    server.addHandler(&events_sensorHistory);
     otaUpdate_init(&server);
 
     // start webserver

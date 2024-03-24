@@ -6,7 +6,6 @@
 
 extern AsyncWebServer server;
 extern AsyncEventSource events_dashboard;
-extern AsyncEventSource events_sensorHistory;
 
 extern bool wifiConfig_isAPOpen;
 
