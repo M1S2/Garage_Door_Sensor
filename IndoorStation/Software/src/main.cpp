@@ -352,22 +352,34 @@ void initWebserverFiles()
 	      serverGetChartDataMemoryFile = LittleFS.open(strBuf, "r");
       }
 
-      message_sensor_timestamped_t sensorMessage;
-		  size_t numReadBytes = serverGetChartDataMemoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
-      if(numReadBytes == 0)
+      uint8_t maxLenPerJsonMsg = 200;
+      size_t jsonSize = 0;
+      for(uint i = 0; i < (maxLen / maxLenPerJsonMsg) - 1; i++)
       {
-        serverGetChartDataMemoryFile.close();
-        return 0;
-      }
+        message_sensor_timestamped_t sensorMessage;
+        size_t numReadBytes = serverGetChartDataMemoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+        if(numReadBytes == 0 && i == 0)
+        {
+          serverGetChartDataMemoryFile.close();
+          return 0;
+        }
+        else if(numReadBytes == 0)
+        {
+          break;
+        }
 
-      // create a JSON document with the data and send it to the web page
-      StaticJsonDocument<1000> root;
-      root["sensorId"] = serverGetCharDataSensorIndex;
-      root["timestamp"] = sensorMessage.timestamp;
-      root["pinState"] = sensorMessage.msg.pinState;
-      root["batteryVoltage_mV"] = sensorMessage.msg.batteryVoltage_mV;
-      root["batteryPercentage"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
-      size_t jsonSize = serializeJson(root, buffer, maxLen);
+        // create a JSON document with the data and send it to the web page
+        StaticJsonDocument<200> root;
+        root["sensorId"] = serverGetCharDataSensorIndex;
+        root["timestamp"] = sensorMessage.timestamp;
+        root["pinState"] = sensorMessage.msg.pinState;
+        root["batteryVoltage_mV"] = sensorMessage.msg.batteryVoltage_mV;
+        root["batteryPercentage"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
+        uint8_t buf[maxLenPerJsonMsg];
+        size_t jsonSizeMsg = serializeJson(root, buf, maxLenPerJsonMsg);
+        memcpy(buffer + jsonSize, buf, jsonSizeMsg);
+        jsonSize += jsonSizeMsg;
+      }
       return jsonSize;
     });
     request->send(response);

@@ -53,6 +53,14 @@ function bodyLoaded()
 
 var style = getComputedStyle(document.body);
 
+Highcharts.setOptions(
+{
+    time:
+	{
+        timezone: 'Europe/Berlin'
+    }
+});
+
 var chart_accu = new Highcharts.Chart(
 {
 	chart:
