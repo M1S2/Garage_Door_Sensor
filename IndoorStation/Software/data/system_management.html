@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Garagen Tor Status Sensor Verwaltung</title>
+		<title>Garagen Tor Status System Verwaltung</title>
 		<meta content="text/html; charset=UTF-8" http-equiv="content-type">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<!-- https://fonts.google.com/icons -->
@@ -11,7 +11,7 @@
 	<body onload="bodyLoaded()">
 		<div class="topnav">	
 			<a href="/index.html" id="Heading">Garagen Tor Status</a>
-			<div id="SubHeading">Sensor Verwaltung</div>
+			<div id="SubHeading">System Verwaltung</div>
 			<!-- Navigation links (hidden by default) -->
 			<div id="menuElements">
 				<a href="/index.html">Übersicht</a>
@@ -25,8 +25,8 @@
 		<div class="content">
 			<div class="cards">
 				<!----------------------- SENSOR 1 --------------------------------------------------------------------------------------->
-				<div class="card sensorinfo1">
-					<h2>#1 - INFO</h2>
+				<div class="card sensor1">
+					<h2><i class="material-symbols-outlined" style="vertical-align: middle">settings</i> #1 - KONFIGURATION</h2>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> MAC</h4>
 
 					<form action="/mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
@@ -56,8 +56,8 @@
 					</form>
 				</div>
 				<!----------------------- SENSOR 2 --------------------------------------------------------------------------------------->
-				<div class="card sensorinfo2">
-					<h2>#2 - INFO</h2>
+				<div class="card sensor2">
+					<h2><i class="material-symbols-outlined" style="vertical-align: middle">settings</i> #2 - KONFIGURATION</h2>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> MAC</h4>
 					
 					<form action="/mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
@@ -86,28 +86,35 @@
 						<input id="submit_download_2" class="submit_button" type="submit" value="Daten herunterladen" title="Sensor Daten vom ESP8266 herunterladen"/>
 					</form>
 				</div>
-			</div>
-			<br><br>
+				<!----------------------- UPLOAD --------------------------------------------------------------------------------------->
+				<div class="card general">
+					<h2><i class="material-symbols-outlined" style="vertical-align: middle">upload</i> HOCHLADEN</h2>
+					<p>Für das hochladen folgende Dateinamen verwenden:</p>
+					<p>dataSensor0.bin: Daten für Sensor 1<br>
+					dataSensor1.bin: Daten für Sensor 2<br>
+					...<br>
+					Alle anderen Dateien werden ignoriert.</p>
+					<br>
 
-			<p>Für das hochladen folgende Dateinamen verwenden:</p>
-			<p>historySensor0.bin : Daten für Sensor 1</p>
-			<p>historySensor1.bin : Daten für Sensor 2</p>
-			<p>...</p>
-			<br>
-
-			<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
-			<form action="/upload_data" method="POST" enctype="multipart/form-data">
-				<input type="file" name="data" accept=".bin"/>
-				<br>
-				<input class="submit_button" type="submit" value="Daten hochladen" title="Sensor Daten auf den ESP8266 hochladen">
-			</form>
-
-			<p>Eigene MAC-Adresse: %INDOOR_STATION_MAC%</p>
+					<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
+					<form action="/upload_data" method="POST" enctype="multipart/form-data">
+						<input type="file" name="data" accept=".bin"/>
+						<br>
+						<input class="submit_button" type="submit" value="Daten hochladen" title="Sensor Daten auf den ESP8266 hochladen">
+					</form>
+				</div>
+				<!----------------------- SYSTEM INFO --------------------------------------------------------------------------------------->
+				<div class="card general">
+					<h2><i class="material-symbols-outlined" style="vertical-align: middle">info</i> SYSTEM INFO</h2>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> Eigene MAC</h4>
+					<p>%INDOOR_STATION_MAC%</p>
+					<br>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> Software Version</h4>
+					<p>%SW_VERSION%</p>
+				</div>
+			</div>			
 		</div>
 	</body>
-	<script src="sensor_management.js"></script>
+	<script src="system_management.js"></script>
 	<script src="common.js"></script>
 </html>
-
-
-<!-- https://vitalets.github.io/x-editable/docs.html -->

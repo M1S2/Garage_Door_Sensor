@@ -4,7 +4,7 @@
 
 unsigned long ota_progress_millis = 0;
 
-MacArrStruct_t persisted_macs;
+MacArrayStruct_t persisted_macs;
 
 void onOTAStart() 
 {

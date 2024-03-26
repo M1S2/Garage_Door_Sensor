@@ -1,26 +1,3 @@
-if (!!window.EventSource)
-{
-	var source = new EventSource('/events');
- 
-	source.addEventListener('open', function(e)
-	{
-		console.log("Events Connected");
-	}, false);
-	
-	source.addEventListener('error', function(e)
-	{
-		if (e.target.readyState != EventSource.OPEN)
-		{
-			console.log("Events Disconnected");
-		}
-	}, false);
- 
-	source.addEventListener('message', function(e)
-	{
-		console.log("message", e.data);
-	}, false);
-}
-
 function bodyLoaded()
 {
 	// Disable the download data buttons if the number of messages equals 0
@@ -41,20 +18,23 @@ function submitMacMessage()
 document.getElementById("mac_sensor_1").addEventListener('keyup', format_macs, false);
 document.getElementById("mac_sensor_2").addEventListener('keyup', format_macs, false);
 
-function format_macs(evt)
+function format_macs(e)
 { 
-    var mac = evt.currentTarget.value;
-	var macs = mac.split('');
-	var colons = [2, 5, 8, 11, 14];
-	for (var col in colons)
+	if(e.keyCode != 8)		// don't format on backspace (8 == backspace)
 	{
-		if (colons[col] <= macs.length)
+		var mac = e.currentTarget.value;
+		var macs = mac.split('');
+		var colons = [2, 5, 8, 11, 14];
+		for (var col in colons)
 		{
-			if (macs[colons[col]] !== ":")
+			if (colons[col] <= macs.length)
 			{
-				macs.splice(colons[col], 0, ":");
+				if (macs[colons[col]] !== ":")
+				{
+					macs.splice(colons[col], 0, ":");
+				}
 			}
 		}
+		e.currentTarget.value = macs.join('').substring(0,17);
 	}
-	evt.currentTarget.value = macs.join('').substring(0,17);
 }

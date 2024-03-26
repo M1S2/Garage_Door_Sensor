@@ -5,13 +5,13 @@
 #include "config.h"
 #include "structures.h"
 
-#define FILENAME_HISTORY_SENSOR_FORMAT		"/historySensor%d.bin"
+#define FILENAME_HISTORY_SENSOR_FORMAT		"/dataSensor%d.bin"
 #define FILENAME_SENSOR_MACS		        "/sensorMacs.bin"
 
 /**
  * Delete all saved data files (sensor history, sensor MACs).
  */
-void memory_reset();
+void memory_removeAllData();
 
 /**
  * Delete the sensor history data for the requested sensor.
@@ -54,10 +54,10 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
 
 
-typedef struct MacArrStruct
+typedef struct MacArrayStruct
 {
     uint8_t macs[NUM_SUPPORTED_SENSORS][6];
-}MacArrStruct_t;
+}MacArrayStruct_t;
 
 /**
  * Save the given sensor MAC addresses
@@ -69,6 +69,6 @@ void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6]);
  * Read the saved sensor MAC addresses
  * @return Structure with internal 2D array containing the MAC addresses for all sensors
 */
-MacArrStruct_t memory_getSensorMacs();
+MacArrayStruct_t memory_getSensorMacs();
 
 #endif

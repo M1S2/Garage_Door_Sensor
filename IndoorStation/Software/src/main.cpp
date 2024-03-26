@@ -20,6 +20,7 @@
 #include "timeHandling.h"
 #include "otaUpdate.h"
 #include "memory.h"
+#include "version.h"
 
 uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
 Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
@@ -80,49 +81,15 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 void btnHandler_reset_longClick(Button2& btn)
 {
+  memory_removeAllData();
   wifiHandling_eraseCredentials();
   delay(1000);
   ESP.restart();
 }
 
-void btnHandler_show_status_click(Button2& btn)
-{
-  Serial.println("Show Status Click (used to emulate sensor message for the first sensor for the moment)");
-
-  message_sensor_t emulated_message;
-  emulated_message.pinState = random(0,2) == 0 ? false : true;
-  emulated_message.batteryVoltage_mV = 3141 + random(0, 1000);
-  emulated_message.numberSendLoops = 42;
-  messageReceived((uint8_t*)&sensor_macs[0], (uint8_t*)&emulated_message, 0 /* len not used */);
-}
-
 void btnHandler_show_status_longClick(Button2& btn)
-{  
-  Serial.println("Clear the memory (for testing purposes!)");
-  memory_reset();
-  // invalidate all last sensor messages
-  for(uint8_t i=0; i < NUM_SUPPORTED_SENSORS; i++)
-  {
-    sensor_messages_latest[i].timestamp = -1;
-  }
-  
-  updateLeds_sensorStatus();
-}
-
-void btnHandler_wifi_click(Button2& btn)
 {
-  Serial.println("Wifi Click (used to emulate sensor message for the second sensor for the moment)");
-
-  message_sensor_t emulated_message;
-  emulated_message.pinState = random(0,2) == 0 ? false : true;
-  emulated_message.batteryVoltage_mV = 2700 + random(0, 500);
-  emulated_message.numberSendLoops = 12;
-  messageReceived((uint8_t*)&sensor_macs[1], (uint8_t*)&emulated_message, 0 /* len not used */);
-}
-
-void btnHandler_wifi_longClick(Button2& btn)
-{
-  Serial.println("Wifi long Click, show all memory data (only for testing!)");
+  Serial.println("Show all memory data (only for testing!)");
   memory_showMemoryContent();
 }
 
@@ -133,6 +100,10 @@ String processor(const String& var)
     if(var == "INDOOR_STATION_MAC")
     {
         return WiFi.macAddress();
+    }
+    else if(var == "SW_VERSION")
+    {
+      return GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
     }
     else if(var.startsWith("MAC_SENSOR"))
     {
@@ -201,7 +172,7 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
   {
     // close the file handle as the upload is now done
     request->_tempFile.close();
-    request->redirect("/sensor_management.html");     // Only redirect if the file was uploaded. If a not allowed file was given, the upload ends in the <IP>/upload_data page (white page)
+    request->redirect("/system_management.html");     // Only redirect if the file was uploaded. If a not allowed file was given, the upload ends in the <IP>/upload_data page (white page)
 
     updateLastSensorMessages();
   }
@@ -225,10 +196,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/sensor_history.html", "text/html"); 
   });
 
-  // Route for root sensor_management.html
-  server.on("/sensor_management.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root system_management.html
+  server.on("/system_management.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_management.html", "text/html", false, processor); 
+    request->send(LittleFS, "/system_management.html", "text/html", false, processor); 
   });
 
   // Route for root style.css
@@ -255,10 +226,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/sensor_history.js", "text/javascript"); 
   });
 
-  // Route for root sensor_management.js
-  server.on("/sensor_management.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root system_management.js
+  server.on("/system_management.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_management.js", "text/javascript"); 
+    request->send(LittleFS, "/system_management.js", "text/javascript"); 
   });
 
   server.onNotFound([](AsyncWebServerRequest *request)
@@ -293,7 +264,7 @@ void initWebserverFiles()
       memory_saveSensorMacs(sensor_macs);
     }
 
-    request->redirect("/sensor_management.html");
+    request->redirect("/system_management.html");
   });
 
   // Send a GET request to <ESP_IP>/download_data_sensor1
@@ -327,7 +298,7 @@ void initWebserverFiles()
     }
     memory_removeSensorHistory(sensorIndex);
     updateLastSensorMessages();
-    request->redirect("/sensor_management.html");
+    request->redirect("/system_management.html");
   });
 
   server.on("/get_data", HTTP_GET, [] (AsyncWebServerRequest *request)
@@ -369,7 +340,7 @@ void initWebserverFiles()
         }
 
         // create a JSON document with the data and send it to the web page
-        StaticJsonDocument<200> root;
+        StaticJsonDocument<200> root;     // The lenght should match the maxLenPerJsonMsg value
         root["sensorId"] = serverGetCharDataSensorIndex;
         root["timestamp"] = sensorMessage.timestamp;
         root["pinState"] = sensorMessage.msg.pinState;
@@ -427,15 +398,13 @@ void setup()
   btn_show_status.setDebounceTime(100);
   btn_show_status.setLongClickTime(500);
   btn_show_status.setDoubleClickTime(400);
-  btn_show_status.setClickHandler(btnHandler_show_status_click);
   btn_show_status.setLongClickDetectedHandler(btnHandler_show_status_longClick);
-  btn_wifi.begin(BTN_WIFI_PIN);   //INPUT_PULLUP
-  btn_wifi.setDebounceTime(100);
-  btn_wifi.setLongClickTime(500);
-  btn_wifi.setDoubleClickTime(400);
-  btn_wifi.setClickHandler(btnHandler_wifi_click);
-  btn_wifi.setLongClickDetectedHandler(btnHandler_wifi_longClick);
-
+  //btn_wifi.begin(BTN_WIFI_PIN);   //INPUT_PULLUP
+  //btn_wifi.setDebounceTime(100);
+  //btn_wifi.setLongClickTime(500);
+  //btn_wifi.setDoubleClickTime(400);
+  //btn_wifi.setClickHandler(btnHandler_wifi_click);
+  
   leds.init();
   leds.setBrightness(12);
   leds_allOff();
