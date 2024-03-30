@@ -20,6 +20,12 @@ void memory_removeAllData();
 void memory_removeSensorHistory(uint8_t sensorIndex);
 
 /**
+ * Construct a string that describes how much memory of the LittleFS is used.
+ * @return String describing the memory usage (used bytes, total bytes, percentage).
+ */
+const char* memory_getMemoryUsageString();
+
+/**
  * Read all sensor history files and show the decoded content on the Serial output.
  */
 void memory_showMemoryContent();

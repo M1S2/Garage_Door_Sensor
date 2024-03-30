@@ -7,8 +7,8 @@ function bodyLoaded()
 	//chart_pinState.series[0].setData([]);
 	//chart_pinState.series[1].setData([]);
 
-	chart_accu.showLoading();
-	chart_pinState.showLoading();
+	chart_accu.showLoading("Lade...");
+	chart_pinState.showLoading("Lade...");
 
 	var xhr = new XMLHttpRequest();
 	currentSensorIndex = 0;
@@ -40,13 +40,13 @@ function bodyLoaded()
 			console.log("element = " + element);
 		
 			var obj = JSON.parse(element);
-			var x = obj.timestamp * 1000;
-			if(obj.sensorId >= 0 && obj.sensorId <= 1)
-			{
-				chart_accu.series[obj.sensorId].addPoint([x, obj.batteryPercentage], true, false, false);
-				chart_pinState.series[obj.sensorId].addPoint([x, obj.pinState ? 1 : 0], true, false, false);
-			}
+			var x = obj.time * 1000;
+			chart_accu.series[currentSensorIndex].addPoint([x, obj.batP], false, false, false);
+			chart_pinState.series[currentSensorIndex].addPoint([x, obj.pin ? 1 : 0], false, false, false);
 		});
+		// redraw the charts after each chunk of data
+		chart_accu.redraw();
+		chart_pinState.redraw();
 	}
 	xhr.send();
 }
@@ -147,6 +147,18 @@ var chart_accu = new Highcharts.Chart(
 		},
 		gridLineColor: style.getPropertyValue('--chart-grid-line-color')
 	},
+	loading:
+	{
+        labelStyle:
+		{
+            color: style.getPropertyValue('--chart-loading-text-color'),
+			fontSize: '30px'
+        },
+        style: 
+		{
+            backgroundColor: style.getPropertyValue('--chart-loading-background')
+        }
+    },
 	credits: { enabled: false }
 });
 
@@ -236,5 +248,17 @@ var chart_pinState = new Highcharts.Chart(
 		},
 		gridLineColor: style.getPropertyValue('--chart-grid-line-color')
 	},
+	loading:
+	{
+        labelStyle:
+		{
+            color: style.getPropertyValue('--chart-loading-text-color'),
+			fontSize: '30px'
+        },
+        style: 
+		{
+            backgroundColor: style.getPropertyValue('--chart-loading-background')
+        }
+    },
 	credits: { enabled: false }
 });

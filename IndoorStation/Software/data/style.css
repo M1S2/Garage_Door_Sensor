@@ -169,6 +169,8 @@ Form */
 	--chart-grid-line-color: #CCCCCC; 
 	--disabled-background: #EEEEEE;
 	--disabled-text-color: #FFFFFF;
+	--chart-loading-background: #999999;
+	--chart-loading-text-color: #000000;
 }
 
 /* Styles for users who prefer dark mode at the OS level */
@@ -190,5 +192,7 @@ Form */
 		--chart-grid-line-color: #666666;
 		--disabled-background: #222222;
 		--disabled-text-color: #FFFFFF;
+		--chart-loading-background: #FFFFFF;
+		--chart-loading-text-color: #212a2e;
 	}
 }

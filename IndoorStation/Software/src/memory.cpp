@@ -29,13 +29,23 @@ void memory_removeSensorHistory(uint8_t sensorIndex)
     }
 }
 
+const char* memory_getMemoryUsageString()
+{
+    FSInfo info;
+    LittleFS.info(info);
+
+    static char buffer[100];
+    snprintf(buffer, sizeof(buffer), "%d von %d Bytes belegt (%.2f %%)", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes); 
+    return buffer;
+}
+
 void memory_showMemoryContent()
 {
     FSInfo info;
     LittleFS.info(info);
     Serial.println("--- File System usage");
-    Serial.printf("%d of %d bytes used (%.2f %%)\n", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes);
-        
+    Serial.println(memory_getMemoryUsageString());
+    
     Serial.println("--- MACs");
     MacArrayStruct_t macStruct = memory_getSensorMacs();
     for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)

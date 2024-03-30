@@ -22,6 +22,8 @@
 #include "memory.h"
 #include "version.h"
 
+// To increase the FS size https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
+
 uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
 Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
 
@@ -100,6 +102,10 @@ String processor(const String& var)
     if(var == "INDOOR_STATION_MAC")
     {
         return WiFi.macAddress();
+    }
+    else if(var == "MEMORY_USAGE")
+    {
+      return memory_getMemoryUsageString();
     }
     else if(var == "SW_VERSION")
     {
@@ -323,7 +329,8 @@ void initWebserverFiles()
 	      serverGetChartDataMemoryFile = LittleFS.open(strBuf, "r");
       }
 
-      uint8_t maxLenPerJsonMsg = 200;
+      StaticJsonDocument<75> jsonRoot;
+      uint8_t maxLenPerJsonMsg = jsonRoot.capacity();
       size_t jsonSize = 0;
       for(uint i = 0; i < (maxLen / maxLenPerJsonMsg) - 1; i++)
       {
@@ -340,14 +347,12 @@ void initWebserverFiles()
         }
 
         // create a JSON document with the data and send it to the web page
-        StaticJsonDocument<200> root;     // The lenght should match the maxLenPerJsonMsg value
-        root["sensorId"] = serverGetCharDataSensorIndex;
-        root["timestamp"] = sensorMessage.timestamp;
-        root["pinState"] = sensorMessage.msg.pinState;
-        root["batteryVoltage_mV"] = sensorMessage.msg.batteryVoltage_mV;
-        root["batteryPercentage"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
+        jsonRoot.clear();
+        jsonRoot["time"] = sensorMessage.timestamp;
+        jsonRoot["pin"] = sensorMessage.msg.pinState;
+        jsonRoot["batP"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
         uint8_t buf[maxLenPerJsonMsg];
-        size_t jsonSizeMsg = serializeJson(root, buf, maxLenPerJsonMsg);
+        size_t jsonSizeMsg = serializeJson(jsonRoot, buf, maxLenPerJsonMsg);
         memcpy(buffer + jsonSize, buf, jsonSizeMsg);
         jsonSize += jsonSizeMsg;
       }
