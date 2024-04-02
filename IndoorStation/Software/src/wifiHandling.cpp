@@ -7,7 +7,6 @@
 #include "main.h"
 
 AsyncWebServer server(80);
-AsyncEventSource events_dashboard("/events_dashboard");
 
 DNSServer dns;
 AsyncWiFiManager wifiManager(&server, &dns);
@@ -63,18 +62,6 @@ void wifiHandling_wifiManagerSaveCB()
     WiFi.persistent(true);
 
     initWebserverFiles();
-    // events 
-    events_dashboard.onConnect([](AsyncEventSourceClient *client)
-    {
-        if(client->lastId())
-        {
-            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
-        }
-        client->send("configure reconnect delay to 10 seconds!", NULL, millis(), 10000);
-
-        updateWebsiteMain();            // Update the values on the website when it is opened (or reloaded in the browser)
-    });
-    server.addHandler(&events_dashboard);
     otaUpdate_init(&server);
 
     // start webserver
