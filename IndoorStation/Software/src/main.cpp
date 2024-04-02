@@ -33,8 +33,8 @@ uint8_t sensor_message_received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
 
-File serverGetChartDataMemoryFile;
-int8_t serverGetCharDataSensorIndex;
+File serverGetDataMemoryFile;
+int8_t serverGetDataSensorIndex;
 
 /**********************************************************************/
 
@@ -182,6 +182,10 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
 
     updateLastSensorMessages();
   }
+  else if (final && !request->_tempFile)    // return an error message if the file wasn't written
+  {
+    request->send(200, "text/plain", "File couldn't be written. Make sure only to upload the allowed files!");
+  }
 }
 
 void initWebserverFiles()
@@ -243,8 +247,8 @@ void initWebserverFiles()
     request->send(404, "text/plain", "Not found");
   });
 
-  // Send a GET request to <ESP_IP>/mac_sensor
-  server.on("/mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
+  // Send a GET request to <ESP_IP>/set_mac_sensor
+  server.on("/set_mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     String inputMessage;
     int8_t sensorIndex = -1;
@@ -284,7 +288,14 @@ void initWebserverFiles()
     //Download data of the requested sensor
     char strBuf[32];
 	  sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
-    request->send(LittleFS, strBuf, String(), true);
+    if(LittleFS.exists(strBuf))
+    {
+      request->send(LittleFS, strBuf, String(), true);
+    }
+    else
+    {
+      request->send(200, "text/plain", "No file with this name found: " + String(strBuf));
+    }
   });
 
   // upload a file to /upload_data
@@ -309,56 +320,63 @@ void initWebserverFiles()
 
   server.on("/get_data", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
-    serverGetCharDataSensorIndex = -1;
+    serverGetDataSensorIndex = -1;
     if(request->hasParam("sensorIndex"))
     {
-      serverGetCharDataSensorIndex = request->getParam("sensorIndex")->value().toInt();
+      serverGetDataSensorIndex = request->getParam("sensorIndex")->value().toInt();
     }
 
-    AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t 
+    if(serverGetDataSensorIndex < 0 || serverGetDataSensorIndex >= NUM_SUPPORTED_SENSORS)
     {
-      //Write up to "maxLen" bytes into "buffer" and return the amount written.
-      //index equals the amount of bytes that have been already sent
-      //You will be asked for more data until 0 is returned
-      //Keep in mind that you can not delay or yield waiting for more data!
-
-      if(index == 0)
+      request->send(200, "text/plain", "sensorIndex parameter not set or out of range");
+    }
+    else
+    {
+      AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t 
       {
-        char strBuf[32];
-	      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverGetCharDataSensorIndex);
-	      serverGetChartDataMemoryFile = LittleFS.open(strBuf, "r");
-      }
+        //Write up to "maxLen" bytes into "buffer" and return the amount written.
+        //index equals the amount of bytes that have been already sent
+        //You will be asked for more data until 0 is returned
+        //Keep in mind that you can not delay or yield waiting for more data!
 
-      StaticJsonDocument<75> jsonRoot;
-      uint8_t maxLenPerJsonMsg = jsonRoot.capacity();
-      size_t jsonSize = 0;
-      for(uint i = 0; i < (maxLen / maxLenPerJsonMsg) - 1; i++)
-      {
-        message_sensor_timestamped_t sensorMessage;
-        size_t numReadBytes = serverGetChartDataMemoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
-        if(numReadBytes == 0 && i == 0)
+        if(index == 0)
         {
-          serverGetChartDataMemoryFile.close();
-          return 0;
-        }
-        else if(numReadBytes == 0)
-        {
-          break;
+          char strBuf[32];
+          sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverGetDataSensorIndex);
+          serverGetDataMemoryFile = LittleFS.open(strBuf, "r");
         }
 
-        // create a JSON document with the data and send it to the web page
-        jsonRoot.clear();
-        jsonRoot["time"] = sensorMessage.timestamp;
-        jsonRoot["pin"] = sensorMessage.msg.pinState;
-        jsonRoot["batP"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
-        uint8_t buf[maxLenPerJsonMsg];
-        size_t jsonSizeMsg = serializeJson(jsonRoot, buf, maxLenPerJsonMsg);
-        memcpy(buffer + jsonSize, buf, jsonSizeMsg);
-        jsonSize += jsonSizeMsg;
-      }
-      return jsonSize;
-    });
-    request->send(response);
+        StaticJsonDocument<75> jsonRoot;
+        uint8_t maxLenPerJsonMsg = jsonRoot.capacity();
+        size_t jsonSize = 0;
+        for(uint i = 0; i < (maxLen / maxLenPerJsonMsg) - 1; i++)
+        {
+          message_sensor_timestamped_t sensorMessage;
+          size_t numReadBytes = serverGetDataMemoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+          if(numReadBytes == 0 && i == 0)
+          {
+            serverGetDataMemoryFile.close();
+            return 0;
+          }
+          else if(numReadBytes == 0)
+          {
+            break;
+          }
+
+          // create a JSON document with the data and send it to the web page
+          jsonRoot.clear();
+          jsonRoot["time"] = sensorMessage.timestamp;
+          jsonRoot["pin"] = sensorMessage.msg.pinState;
+          jsonRoot["batP"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
+          uint8_t buf[maxLenPerJsonMsg];
+          size_t jsonSizeMsg = serializeJson(jsonRoot, buf, maxLenPerJsonMsg);
+          memcpy(buffer + jsonSize, buf, jsonSizeMsg);
+          jsonSize += jsonSizeMsg;
+        }
+        return jsonSize;
+      });
+      request->send(response);
+    }
   });
 }
 
