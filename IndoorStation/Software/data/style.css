@@ -4,14 +4,17 @@ html
 	display: inline-block; 
 	text-align: center;
 }
+
 p 
 {  
 	font-size: 1.2rem;
 }
+
 i
 {
 	vertical-align: middle;
 }
+
 body 
 {  
 	margin: 0;
@@ -38,7 +41,7 @@ ul
 	display: flex;
 	flex-direction: column;
 	position: absolute;
-	top: 30px;
+	top: 50px;
 	left: 25px;
 	z-index: 1;
 	-webkit-user-select: none;
@@ -194,6 +197,15 @@ ul
 { 
 	color: var(--text-color);
 }
+
+.error
+{
+	color: var(--error-color);
+}
+.error a
+{
+	color: var(--error-color);
+}
 	
 /* -----------------------------------------------------------------------------------------
 Form */
@@ -252,6 +264,7 @@ Form */
 	--disabled-text-color: #FFFFFF;
 	--chart-loading-background: #999999;
 	--chart-loading-text-color: #000000;
+	--error-color: #FF0000;
 }
 
 /* Styles for users who prefer dark mode at the OS level */
@@ -275,5 +288,6 @@ Form */
 		--disabled-text-color: #FFFFFF;
 		--chart-loading-background: #FFFFFF;
 		--chart-loading-text-color: #212a2e;
+		--error-color: #FF0000;
 	}
 }

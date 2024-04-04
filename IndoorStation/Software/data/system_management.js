@@ -5,8 +5,8 @@ function bodyLoaded()
 	var isNumMsg1Zero = document.getElementById("num_msg_1").innerText == "0";
 	document.getElementById("submit_download_1").disabled = isNumMsg1Zero;
 
-	var isNumMsg1Zero = document.getElementById("num_msg_2").innerText == "0";
-	document.getElementById("submit_download_2").disabled = isNumMsg1Zero;
+	var isNumMsg2Zero = document.getElementById("num_msg_2").innerText == "0";
+	document.getElementById("submit_download_2").disabled = isNumMsg2Zero;
 }
 
 function submitMacMessage()

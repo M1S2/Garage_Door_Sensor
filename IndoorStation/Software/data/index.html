@@ -8,7 +8,7 @@
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />		
 		<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
-	<body>
+	<body onload="bodyLoaded()">
 		<!-- https://codepen.io/shieldsma91/pen/zLpbLX -->
 		<nav role="navigation">
             <div id="Heading">
@@ -38,6 +38,13 @@
 					<p class="reading"><span>%SENSOR_VOLTAGE_1%</span> V</p>
 					<br>
 					<p class="timestamp">%SENSOR_TIMESTAMP_1%</p>
+					<br>
+					<div class="error" id="error_sensor_1">
+						<p id="mac_sensor_1" hidden>%MAC_SENSOR_1%</p>
+						<p><i class="material-symbols-outlined">warning</i> MAC Adresse noch nicht gesetzt!</p>
+						<p><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> Jetzt konfigurieren</a></p>
+					</div>
+					<br>
 				</div>
 				
 				<div class="card sensor2">
@@ -49,6 +56,13 @@
 					<p class="reading"><span>%SENSOR_VOLTAGE_2%</span> V</p>
 					<br>
 					<p class="timestamp">%SENSOR_TIMESTAMP_2%</p>
+					<br>
+					<div class="error" id="error_sensor_2">
+						<p id="mac_sensor_2" hidden>%MAC_SENSOR_2%</p>
+						<p><i class="material-symbols-outlined">warning</i> MAC Adresse noch nicht gesetzt!</p>
+						<p><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> Jetzt konfigurieren</a></p>
+					</div>
+					<br>
 				</div>
 			</div>
 		</div>
