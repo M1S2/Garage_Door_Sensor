@@ -24,17 +24,17 @@ batteryLookupTableEntry_t batteryLookupTable[] = {
 
 #define NUM_BATTERY_LOOKUP_TABLE_ENTRIES        (sizeof(batteryLookupTable) / sizeof(batteryLookupTable[0]))
 
-uint8_t battery_voltageToPercent(uint16_t batteryVoltage_mV)
+float battery_voltageToPercent(uint16_t batteryVoltage_mV, uint8_t numberFractionalDigits)
 {
     // if the voltage is smaller or equal than the first lookup table entry voltage, return the first entry percentage
     if(batteryVoltage_mV <= batteryLookupTable[0].batteryVoltage_mV)
     {
-        return batteryLookupTable[0].batteryLevel_percent;
+        return (float)batteryLookupTable[0].batteryLevel_percent;
     }
     // if the voltage is greater or equal than the last lookup table entry voltage, return the last entry percentage
     if(batteryVoltage_mV >= batteryLookupTable[NUM_BATTERY_LOOKUP_TABLE_ENTRIES - 1].batteryVoltage_mV)
     {
-        return batteryLookupTable[NUM_BATTERY_LOOKUP_TABLE_ENTRIES - 1].batteryLevel_percent;
+        return (float)batteryLookupTable[NUM_BATTERY_LOOKUP_TABLE_ENTRIES - 1].batteryLevel_percent;
     }
 
     // Loop over each range in the lookup table and check if the voltage falls in the current range
@@ -45,8 +45,10 @@ uint8_t battery_voltageToPercent(uint16_t batteryVoltage_mV)
 
         if(batteryVoltage_mV > entry1.batteryVoltage_mV && batteryVoltage_mV <= entry2.batteryVoltage_mV)
         {
+            // The multiplier determines the number of fractional digits. 1000=10^3 -> 3 digits, 100=10^2 -> 2 digits ...
+            uint16_t multiplier = pow(10, numberFractionalDigits);
             // interpolate the battery voltage
-            uint8_t batteryPercentage = map(batteryVoltage_mV, entry1.batteryVoltage_mV, entry2.batteryVoltage_mV, entry1.batteryLevel_percent, entry2.batteryLevel_percent);
+            float batteryPercentage = (float)(map(batteryVoltage_mV, entry1.batteryVoltage_mV, entry2.batteryVoltage_mV, entry1.batteryLevel_percent * multiplier, entry2.batteryLevel_percent * multiplier) / (float)multiplier);
             return batteryPercentage;
         }
     }

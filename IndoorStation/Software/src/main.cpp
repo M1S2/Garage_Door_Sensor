@@ -129,7 +129,7 @@ String processor(const String& var)
             }
             else if(var.startsWith("SENSOR_PERCENTAGE_"))
             {
-                return String((float)battery_voltageToPercent(sensor_messages_latest[sensorIndex].msg.batteryVoltage_mV), 0);
+                return String(battery_voltageToPercent(sensor_messages_latest[sensorIndex].msg.batteryVoltage_mV, 2), 2);
             }
             else if(var.startsWith("SENSOR_TIMESTAMP_"))
             {
