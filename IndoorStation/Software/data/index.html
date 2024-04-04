@@ -9,27 +9,31 @@
 		<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
 	<body>
-		<div class="topnav">	
-			<!-- https://www.w3schools.com/howto/howto_js_mobile_navbar.asp -->
-			<a href="/index.html" id="Heading">Garagen Tor Status</a>
-			<div id="SubHeading">Übersicht</div>
-			<!-- Navigation links (hidden by default) -->
-			<div id="menuElements">
-				<a href="/system_management.html">System Verwaltung</a>
-				<a href="/sensor_history.html">Sensor Diagramme</a>
+		<!-- https://codepen.io/shieldsma91/pen/zLpbLX -->
+		<nav role="navigation">
+            <div id="Heading">
+				<div>Garagen Tor Status</div>
+				<div id="SubHeading">Übersicht</div>
 			</div>
-			<!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
-			<a href="javascript:void(0);" class="icon" onclick="menuClicked()">
-				<i class="material-symbols-outlined" style="vertical-align: middle">menu</i>
-			</a>	
-		</div>
+			<div id="menuToggle">
+				<input type="checkbox" />
+				<!-- Don't delete the following spans. They are used to display the hamburger icon -->
+				<span></span><span></span><span></span>
+				<ul id="menu">
+					<li><a href="/index.html"><i class="material-symbols-outlined">info</i> Übersicht</a></li>
+					<li><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> System Verwaltung</a></li>
+					<li><a href="/sensor_history.html"><i class="material-symbols-outlined">monitoring</i> Sensor Diagramme</a></li>
+				</ul>
+			</div>
+        </nav>
+		
 		<div class="content">
 			<div class="cards">
 				<div class="card sensor1">
 					<h2>#1</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">door_open</i> STATUS</h4>
+					<h4><i class="material-symbols-outlined">door_open</i> STATUS</h4>
 					<p class="reading">%SENSOR_STATE_1%</p>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">battery_horiz_050</i> BATTERIE</h4>
+					<h4><i class="material-symbols-outlined">battery_horiz_050</i> BATTERIE</h4>
 					<p class="reading"><span>%SENSOR_PERCENTAGE_1%</span> %%</p>
 					<p class="reading"><span>%SENSOR_VOLTAGE_1%</span> V</p>
 					<br>
@@ -38,9 +42,9 @@
 				
 				<div class="card sensor2">
 					<h2>#2</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">door_open</i> STATUS</h4>
+					<h4><i class="material-symbols-outlined">door_open</i> STATUS</h4>
 					<p class="reading">%SENSOR_STATE_2%</p>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">battery_horiz_050</i> BATTERIE</h4>
+					<h4><i class="material-symbols-outlined">battery_horiz_050</i> BATTERIE</h4>
 					<p class="reading"><span>%SENSOR_PERCENTAGE_2%</span> %%</p>
 					<p class="reading"><span>%SENSOR_VOLTAGE_2%</span> V</p>
 					<br>
@@ -50,5 +54,4 @@
 		</div>
 	</body>
 	<script src="index.js"></script>
-	<script src="common.js"></script>
 </html>
