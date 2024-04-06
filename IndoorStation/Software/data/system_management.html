@@ -39,10 +39,13 @@
 						<input class="submit_button" type="submit" value="Übernehmen">
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
-
+					<br>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
-					<p class="reading" id="num_msg_1">%NUM_MESSAGES_1%</p>
-					
+					<p id="num_msg_1">%NUM_MESSAGES_1%</p>
+					<br>					
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
+					<p>%SENSOR_SW_VERSION_1%</p>
+					<br>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">database</i> DATEN VERWALTEN</h4>
 					<form action="/remove_data" method="get">
 						<input type="hidden" name="sensorIndex" value="0">
@@ -70,10 +73,13 @@
 						<input class="submit_button" type="submit" value="Übernehmen">
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
-
+					<br>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
-					<p class="reading" id="num_msg_2">%NUM_MESSAGES_2%</p>
-					
+					<p id="num_msg_2">%NUM_MESSAGES_2%</p>
+					<br>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
+					<p>%SENSOR_SW_VERSION_2%</p>
+					<br>
 					<h4><i class="material-symbols-outlined" style="vertical-align: middle">database</i> DATEN VERWALTEN</h4>
 					<form action="/remove_data" method="get">
 						<input type="hidden" name="sensorIndex" value="1">
@@ -104,14 +110,14 @@
 				<!----------------------- SYSTEM INFO --------------------------------------------------------------------------------------->
 				<div class="card general">
 					<h2><i class="material-symbols-outlined" style="vertical-align: middle">info</i> SYSTEM INFO</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> Eigene MAC</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> EIGENE MAC</h4>
 					<p>%INDOOR_STATION_MAC%</p>
 					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">storage</i>Speicherbelegung</h4>
-					<p>%MEMORY_USAGE%</p>
-					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> Software Version</h4>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
 					<p>%INDOOR_STATION_SW_VERSION%</p>
+					<br>
+					<h4><i class="material-symbols-outlined" style="vertical-align: middle">storage</i> SPEICHERBELEGUNG</h4>
+					<p>%MEMORY_USAGE%</p>
 				</div>
 			</div>			
 		</div>

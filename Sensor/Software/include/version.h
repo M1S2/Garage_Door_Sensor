@@ -1,1 +1,2 @@
-#define GARAGE_DOOR_SENSOR_SW_VERSION     "NO_RELEASE"
+#define SENSOR_SW_VERSION_MAJOR         0           // allowed range 0..15, use MAJOR=0 and MINOR=0 to indicate a development version
+#define SENSOR_SW_VERSION_MINOR         0           // allowed range 0..15, use MAJOR=0 and MINOR=0 to indicate a development version

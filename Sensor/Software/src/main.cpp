@@ -24,13 +24,14 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
 
-// Packing of this structure reduces the size to 4 bytes
+// Packing of this structure reduces the size to 5 bytes
 PACK_STRUCT_BEGIN
 typedef struct message_sensor
 {
-  PACK_STRUCT_FIELD(bool pinState);
-  PACK_STRUCT_FIELD(uint16_t batteryVoltage_mV);
-  PACK_STRUCT_FLD_8(uint8_t numberSendLoops);
+  PACK_STRUCT_FIELD(bool pinState);                 // This field contains the state of the sensor (door open / closed)
+  PACK_STRUCT_FIELD(uint16_t batteryVoltage_mV);    // This field contains the measured battery voltage in mV
+  PACK_STRUCT_FLD_8(uint8_t numberSendLoops);       // This field contains the total number of loops needed to send the message to the indoor station
+  PACK_STRUCT_FLD_8(uint8_t sensor_sw_version);     // This field contains the software version of the sensor in the following format: Upper 4 bits contain the Major number, lower 4 bits contain the Minor number (each number can be in the range from 0..15)
 }PACK_STRUCT_STRUCT message_sensor_t;
 PACK_STRUCT_END
 
@@ -108,6 +109,7 @@ bool sendSensorData()
 {
   sensor_message.batteryVoltage_mV = getBatteryVoltage() * 1000;
   sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
+  sensor_message.sensor_sw_version = ((SENSOR_SW_VERSION_MAJOR & 0xF) << 4) + (SENSOR_SW_VERSION_MINOR & 0xF);
 
   for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)
   {
@@ -153,8 +155,8 @@ void setup()
 
   Serial.begin(115200);
   Serial.println();
-  Serial.print("Version of Garage Door Sensor SW: ");
-  Serial.println(GARAGE_DOOR_SENSOR_SW_VERSION);
+  Serial.print("Version of Garage Door Sensor SW: v");
+  Serial.printf("%d.%d\n", SENSOR_SW_VERSION_MAJOR, SENSOR_SW_VERSION_MINOR);
   Serial.print("My MAC-Address: ");
   Serial.println(WiFi.macAddress());
 

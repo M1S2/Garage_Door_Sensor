@@ -156,11 +156,12 @@ String processor(const String& var)
     {
         return GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
     }
-    else if(var.startsWith("MAC_SENSOR_") || var.startsWith("NUM_MESSAGES_"))
+    else if(var.startsWith("MAC_SENSOR_") || var.startsWith("NUM_MESSAGES_") || var.startsWith("SENSOR_SW_VERSION_"))
     {
         String sensorIndexStr = String(var);
         sensorIndexStr.replace("MAC_SENSOR_","");
         sensorIndexStr.replace("NUM_MESSAGES_","");
+        sensorIndexStr.replace("SENSOR_SW_VERSION_","");
         long sensorIndex = sensorIndexStr.toInt() - 1;
         if(sensorIndex < 0 || sensorIndex >= NUM_SUPPORTED_SENSORS)
         {
@@ -177,6 +178,19 @@ String processor(const String& var)
             else if(var.startsWith("NUM_MESSAGES_"))
             {
                 return String(memory_getNumberSensorMessages(sensorIndex));
+            }
+            else if(var.startsWith("SENSOR_SW_VERSION_"))
+            {
+                if(sensor_messages_latest[sensorIndex].timestamp == -1)
+                {
+                    return "?";
+                }
+                else
+                {
+                    uint8_t major = (sensor_messages_latest[sensorIndex].msg.sensor_sw_version & 0xF0) >> 4;
+                    uint8_t minor = (sensor_messages_latest[sensorIndex].msg.sensor_sw_version & 0x0F);
+                    return "v" + String(major) + "." + String(minor);
+                }
             }
         }
     }
