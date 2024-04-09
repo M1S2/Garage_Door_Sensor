@@ -24,9 +24,27 @@
 			<div class="cards">
 				<!----------------------- SENSOR 1 --------------------------------------------------------------------------------------->
 				<div class="card sensor1">
-					<h2><i class="material-symbols-outlined" style="vertical-align: middle">settings</i> #1 - KONFIGURATION</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> MAC</h4>
-
+					<h2><i class="material-symbols-outlined">settings</i> #1 - KONFIGURATION</h2>
+					<h4><i class="material-symbols-outlined">tune</i> SENSOR MODUS</h4>
+					<form action="/set_sensor_mode" method="GET">
+						<input type="hidden" name="sensorIndex" value="0">
+						<input type="hidden" id="sensor_mode_selectedIndex_1" value="%SENSOR_MODE_1%">
+						<select id="sensor_mode_1" name="mode" onchange="this.form.submit()">
+							<option value="0">Normal</option>
+							<option value="1">Deaktiviert</option>
+							<option value="2">Laden</option>
+							<option value="3">Nur Anzeige, kein Speichern</option>
+							<option value="4">Sensor verbinden</option>
+						</select>
+					</form>
+					<br>
+					<h4><i class="material-symbols-outlined">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
+					<p id="num_msg_1">%NUM_MESSAGES_1%</p>
+					<br>					
+					<h4><i class="material-symbols-outlined">update</i> SOFTWARE VERSION</h4>
+					<p>%SENSOR_SW_VERSION_1%</p>
+					<br>
+					<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
 					<form action="/set_mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
 						<input type="hidden" name="sensorIndex" value="0">
 						<input 	class="input_sensor1" required
@@ -40,13 +58,7 @@
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
 					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
-					<p id="num_msg_1">%NUM_MESSAGES_1%</p>
-					<br>					
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
-					<p>%SENSOR_SW_VERSION_1%</p>
-					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">database</i> DATEN VERWALTEN</h4>
+					<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
 					<form action="/remove_data" method="get">
 						<input type="hidden" name="sensorIndex" value="0">
 						<input class="submit_button" type="submit" value="Daten löschen"/>
@@ -58,9 +70,27 @@
 				</div>
 				<!----------------------- SENSOR 2 --------------------------------------------------------------------------------------->
 				<div class="card sensor2">
-					<h2><i class="material-symbols-outlined" style="vertical-align: middle">settings</i> #2 - KONFIGURATION</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> MAC</h4>
-					
+					<h2><i class="material-symbols-outlined">settings</i> #2 - KONFIGURATION</h2>
+					<h4><i class="material-symbols-outlined">tune</i> SENSOR MODUS</h4>
+					<form action="/set_sensor_mode" method="GET">
+						<input type="hidden" name="sensorIndex" value="1">
+						<input type="hidden" id="sensor_mode_selectedIndex_2" value="%SENSOR_MODE_2%">
+						<select id="sensor_mode_2" name="mode" onchange="this.form.submit()">
+							<option value="0">Normal</option>
+							<option value="1">Deaktiviert</option>
+							<option value="2">Laden</option>
+							<option value="3">Nur Anzeige, kein Speichern</option>
+							<option value="4">Sensor verbinden</option>
+						</select>
+					</form>
+					<br>
+					<h4><i class="material-symbols-outlined">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
+					<p id="num_msg_2">%NUM_MESSAGES_2%</p>
+					<br>
+					<h4><i class="material-symbols-outlined">update</i> SOFTWARE VERSION</h4>
+					<p>%SENSOR_SW_VERSION_2%</p>
+					<br>
+					<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
 					<form action="/set_mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
 						<input type="hidden" name="sensorIndex" value="1">
 						<input 	class="input_sensor2" required
@@ -74,13 +104,7 @@
 					</form>
 					<iframe style="display:none" name="hidden-form"></iframe>
 					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
-					<p id="num_msg_2">%NUM_MESSAGES_2%</p>
-					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
-					<p>%SENSOR_SW_VERSION_2%</p>
-					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">database</i> DATEN VERWALTEN</h4>
+					<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
 					<form action="/remove_data" method="get">
 						<input type="hidden" name="sensorIndex" value="1">
 						<input class="submit_button" type="submit" value="Daten löschen"/>
@@ -92,7 +116,7 @@
 				</div>
 				<!----------------------- UPLOAD --------------------------------------------------------------------------------------->
 				<div class="card general">
-					<h2><i class="material-symbols-outlined" style="vertical-align: middle">upload</i> HOCHLADEN</h2>
+					<h2><i class="material-symbols-outlined">upload</i> HOCHLADEN</h2>
 					<p>Für das hochladen folgende Dateinamen verwenden:</p>
 					<p>dataSensor0.bin: Daten für Sensor 1<br>
 					dataSensor1.bin: Daten für Sensor 2<br>
@@ -109,14 +133,14 @@
 				</div>
 				<!----------------------- SYSTEM INFO --------------------------------------------------------------------------------------->
 				<div class="card general">
-					<h2><i class="material-symbols-outlined" style="vertical-align: middle">info</i> SYSTEM INFO</h2>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">pin</i> EIGENE MAC</h4>
+					<h2><i class="material-symbols-outlined">info</i> SYSTEM INFO</h2>
+					<h4><i class="material-symbols-outlined">pin</i> EIGENE MAC</h4>
 					<p>%INDOOR_STATION_MAC%</p>
 					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">update</i> SOFTWARE VERSION</h4>
+					<h4><i class="material-symbols-outlined">update</i> SOFTWARE VERSION</h4>
 					<p>%INDOOR_STATION_SW_VERSION%</p>
 					<br>
-					<h4><i class="material-symbols-outlined" style="vertical-align: middle">storage</i> SPEICHERBELEGUNG</h4>
+					<h4><i class="material-symbols-outlined">storage</i> SPEICHERBELEGUNG</h4>
 					<p>%MEMORY_USAGE%</p>
 				</div>
 			</div>			

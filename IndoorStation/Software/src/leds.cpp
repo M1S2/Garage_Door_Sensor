@@ -56,17 +56,13 @@ void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow)
 
 void leds_sensorPairing(uint8_t index)
 {
-    if(index == SENSOR1_LED_INDEX)
-    {
-        leds_singleOff(SENSOR2_LED_INDEX);
-    }
-    else if(index == SENSOR2_LED_INDEX)
-    {
-        leds_singleOff(SENSOR1_LED_INDEX);
-    }
-
     leds.setSegment(index, index, index, FX_MODE_BLINK, COLORS(COLOR_PAIRING_1, COLOR_PAIRING_2), 800);
     leds.addActiveSegment(index);
+}
+
+void leds_sensorCharging(uint8_t index)
+{
+    setLedStatic(index, COLOR_SENSOR_CHARGING);
 }
 
 /**********************************************************************/

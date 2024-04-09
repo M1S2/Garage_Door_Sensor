@@ -7,6 +7,9 @@ function bodyLoaded()
 
 	var isNumMsg2Zero = document.getElementById("num_msg_2").innerText == "0";
 	document.getElementById("submit_download_2").disabled = isNumMsg2Zero;
+
+	document.getElementById("sensor_mode_1").value = document.getElementById("sensor_mode_selectedIndex_1").value;
+	document.getElementById("sensor_mode_2").value = document.getElementById("sensor_mode_selectedIndex_2").value;
 }
 
 function submitMacMessage()

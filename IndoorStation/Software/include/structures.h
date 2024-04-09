@@ -18,4 +18,13 @@ typedef struct __attribute__((packed)) message_sensor_timestamped
   time_t timestamp;
 }message_sensor_timestamped_t;
 
+enum SensorModes
+{
+  SENSOR_MODE_NORMAL = 0,           // All messages are received, everything is saved, LED on
+  SENSOR_MODE_DISABLED = 1,         // All messages are ignored, nothing is saved, LED off
+  SENSOR_MODE_CHARGING = 2,         // All messages are ignored, nothing is saved, LED in different color
+  SENSOR_MODE_ONLY_DISPLAY = 3,     // Messages are only displayed via the LED, nothing is saved
+  SENSOR_MODE_PAIRING = 4,          // Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved
+};
+
 #endif

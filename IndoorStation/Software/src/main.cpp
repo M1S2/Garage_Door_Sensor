@@ -32,6 +32,7 @@ bool sensor_message_received = false;
 uint8_t sensor_message_received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
+SensorModes sensor_modes[NUM_SUPPORTED_SENSORS];
 
 File serverGetDataMemoryFile;
 int8_t serverGetDataSensorIndex;
@@ -42,14 +43,25 @@ void updateLeds_sensorStatus()
 {
   for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
   {
-    if(sensor_messages_latest[i].timestamp != -1)
+    switch(sensor_modes[i])
     {
-      bool isOpen = (sensor_messages_latest[i].msg.pinState == SENSOR_PIN_STATE_OPEN);
-      leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_messages_latest[i].msg.batteryVoltage_mV));
-    }
-    else
-    {
-      leds_singleOff(i);
+      case SENSOR_MODE_DISABLED: leds_singleOff(i); break;
+      case SENSOR_MODE_CHARGING: leds_sensorCharging(i); break;
+      case SENSOR_MODE_PAIRING: leds_sensorPairing(i); break;
+      case SENSOR_MODE_NORMAL:
+      case SENSOR_MODE_ONLY_DISPLAY:
+      {
+        if(sensor_messages_latest[i].timestamp != -1)
+        {
+          bool isOpen = (sensor_messages_latest[i].msg.pinState == SENSOR_PIN_STATE_OPEN);
+          leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_messages_latest[i].msg.batteryVoltage_mV));
+        }
+        else
+        {
+          leds_singleOff(i);
+        }
+      }
+      default: break;
     }
   }
 }
@@ -93,6 +105,17 @@ void btnHandler_show_status_longClick(Button2& btn)
 {
   Serial.println("Show all memory data (only for testing!)");
   memory_showMemoryContent();
+}
+
+/**********************************************************************/
+
+void setSensorMode(uint8_t sensorIndex, SensorModes mode)
+{
+  if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+  {
+    sensor_modes[sensorIndex] = mode;
+    updateLeds_sensorStatus();
+  }
 }
 
 /**********************************************************************/
@@ -156,12 +179,13 @@ String processor(const String& var)
     {
         return GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
     }
-    else if(var.startsWith("MAC_SENSOR_") || var.startsWith("NUM_MESSAGES_") || var.startsWith("SENSOR_SW_VERSION_"))
+    else if(var.startsWith("MAC_SENSOR_") || var.startsWith("NUM_MESSAGES_") || var.startsWith("SENSOR_SW_VERSION_") || var.startsWith("SENSOR_MODE_"))
     {
         String sensorIndexStr = String(var);
         sensorIndexStr.replace("MAC_SENSOR_","");
         sensorIndexStr.replace("NUM_MESSAGES_","");
         sensorIndexStr.replace("SENSOR_SW_VERSION_","");
+        sensorIndexStr.replace("SENSOR_MODE_","");
         long sensorIndex = sensorIndexStr.toInt() - 1;
         if(sensorIndex < 0 || sensorIndex >= NUM_SUPPORTED_SENSORS)
         {
@@ -191,6 +215,10 @@ String processor(const String& var)
                     uint8_t minor = (sensor_messages_latest[sensorIndex].msg.sensor_sw_version & 0x0F);
                     return "v" + String(major) + "." + String(minor);
                 }
+            }
+            else if(var.startsWith("SENSOR_MODE_"))
+            {
+              return String(sensor_modes[sensorIndex]);
             }
         }
     }
@@ -435,6 +463,23 @@ void initWebserverFiles()
       request->send(response);
     }
   });
+
+  // Send a GET request to <ESP_IP>/set_sensor_mode
+  server.on("/set_sensor_mode", HTTP_GET, [] (AsyncWebServerRequest *request)
+  {
+    int8_t sensorIndex = -1;
+    SensorModes mode;
+    if(request->hasParam("sensorIndex"))
+    {
+      sensorIndex = request->getParam("sensorIndex")->value().toInt();
+    }
+    if(request->hasParam("mode"))
+    {
+      mode = (SensorModes)request->getParam("mode")->value().toInt();
+      setSensorMode(sensorIndex, mode);
+    }
+    request->redirect("/system_management.html");
+  });
 }
 
 /**********************************************************************/
@@ -473,6 +518,12 @@ void setup()
 
   // Load saved sensor_macs
   memcpy(sensor_macs, memory_getSensorMacs().macs, sizeof(sensor_macs));
+
+  // Reset all sensor modes to Normal
+  for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+  {
+    setSensorMode(i, SENSOR_MODE_NORMAL);
+  }
 
   updateLastSensorMessages();
 
@@ -523,7 +574,8 @@ void loop()
           sensor_message_received_mac_addr[2] == sensor_macs[i][2] &&
           sensor_message_received_mac_addr[3] == sensor_macs[i][3] &&
           sensor_message_received_mac_addr[4] == sensor_macs[i][4] &&
-          sensor_message_received_mac_addr[5] == sensor_macs[i][5])
+          sensor_message_received_mac_addr[5] == sensor_macs[i][5] &&
+          (sensor_modes[i] == SENSOR_MODE_NORMAL || sensor_modes[i] == SENSOR_MODE_ONLY_DISPLAY))
       {
         sensor_id = i;
         sensor_messages_latest[i].msg = sensor_message;
@@ -536,22 +588,13 @@ void loop()
         bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
         leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_message.batteryVoltage_mV));
 
-        memory_addSensorMessage(i, sensor_messages_latest[i]);
-
+        if(sensor_modes[i] == SENSOR_MODE_NORMAL)
+        {
+          memory_addSensorMessage(i, sensor_messages_latest[i]);
+        }
+        
         break;  
       }
     }
-
-    if (sensor_id == -1)
-    {
-      Serial.println("Data received from unknown Sensor");
-    }
-    
-    Serial.print("PinState: ");
-    Serial.println(sensor_message.pinState);
-    Serial.print("Battery Voltage mV: ");
-    Serial.println(sensor_message.batteryVoltage_mV);
-    Serial.print("NumberSendLoops: ");
-    Serial.println(sensor_message.numberSendLoops);
   }
 }
