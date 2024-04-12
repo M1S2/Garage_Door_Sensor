@@ -10,21 +10,6 @@ function bodyLoaded()
 	var xhr = new XMLHttpRequest();
 	currentSensorIndex = 0;
 	xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
-	xhr.addEventListener("load", function(e)
-	{
-		console.log("completed: sensor #" + currentSensorIndex);
-		currentSensorIndex++;
-		if (currentSensorIndex < NUM_SUPPORTED_SENSORS)
-		{
-			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
-			xhr.send();
-		}
-		else
-		{
-			chart_accu.hideLoading();
-			chart_pinState.hideLoading();
-		}
-	});
 	xhr.onprogress = function ()
 	{
 		var chunk = xhr.responseText.slice(previous_response_length);
@@ -45,6 +30,21 @@ function bodyLoaded()
 		chart_accu.redraw();
 		chart_pinState.redraw();
 	}
+	xhr.addEventListener("load", function(e)
+	{
+		console.log("completed: sensor #" + currentSensorIndex);
+		currentSensorIndex++;
+		if (currentSensorIndex < NUM_SUPPORTED_SENSORS)
+		{
+			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
+			xhr.send();
+		}
+		else
+		{
+			chart_accu.hideLoading();
+			chart_pinState.hideLoading();
+		}
+	});
 	xhr.send();
 }
 

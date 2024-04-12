@@ -29,13 +29,15 @@
 					<form action="/set_sensor_mode" method="GET">
 						<input type="hidden" name="sensorIndex" value="0">
 						<input type="hidden" id="sensor_mode_selectedIndex_1" value="%SENSOR_MODE_1%">
-						<select id="sensor_mode_1" name="mode" onchange="this.form.submit()">
-							<option value="0">Normal</option>
-							<option value="1">Deaktiviert</option>
-							<option value="2">Laden</option>
-							<option value="3">Nur Anzeige, kein Speichern</option>
-							<option value="4">Sensor verbinden</option>
-						</select>
+						<div class="select-arrow">
+							<select id="sensor_mode_1" name="mode" onchange="this.form.submit()">
+								<option value="0">Normal</option>
+								<option value="1">Deaktiviert</option>
+								<option value="2">Laden</option>
+								<option value="3">Nur Anzeige, kein Speichern</option>
+								<option value="4">Sensor verbinden</option>
+							</select>
+						</div>
 					</form>
 					<br>
 					<h4><i class="material-symbols-outlined">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
@@ -47,7 +49,7 @@
 					<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
 					<form action="/set_mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
 						<input type="hidden" name="sensorIndex" value="0">
-						<input 	class="input_sensor1" required
+						<input 	class="input_sensor" required
 								id="mac_sensor_1"
 								name="mac"
 								type="text"
@@ -75,13 +77,15 @@
 					<form action="/set_sensor_mode" method="GET">
 						<input type="hidden" name="sensorIndex" value="1">
 						<input type="hidden" id="sensor_mode_selectedIndex_2" value="%SENSOR_MODE_2%">
-						<select id="sensor_mode_2" name="mode" onchange="this.form.submit()">
-							<option value="0">Normal</option>
-							<option value="1">Deaktiviert</option>
-							<option value="2">Laden</option>
-							<option value="3">Nur Anzeige, kein Speichern</option>
-							<option value="4">Sensor verbinden</option>
-						</select>
+						<div class="select-arrow">
+							<select id="sensor_mode_2" name="mode" onchange="this.form.submit()">
+								<option value="0">Normal</option>
+								<option value="1">Deaktiviert</option>
+								<option value="2">Laden</option>
+								<option value="3">Nur Anzeige, kein Speichern</option>
+								<option value="4">Sensor verbinden</option>
+							</select>
+						</div>
 					</form>
 					<br>
 					<h4><i class="material-symbols-outlined">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
@@ -93,7 +97,7 @@
 					<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
 					<form action="/set_mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
 						<input type="hidden" name="sensorIndex" value="1">
-						<input 	class="input_sensor2" required
+						<input 	class="input_sensor" required
 								id="mac_sensor_2"
 								name="mac"
 								type="text"

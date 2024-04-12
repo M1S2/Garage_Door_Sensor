@@ -171,15 +171,16 @@ nav a.active
 	
 /* -----------------------------------------------------------------------------------------
 Form */
-.input_sensor1
+.input_sensor
 {
 	font-size: 1.2rem;
-	color: var(--sensor1-color);
-}
-.input_sensor2
-{
-	font-size: 1.2rem;
-	color: var(--sensor2-color); 
+	background: var(--background-color);
+	color: var(--text-color);
+	text-align: center;
+	border-radius: .3em;
+	border-style: solid;
+	border-width: thin;
+	border-color: var(--accent1-color);
 }
 .submit_button
 {
@@ -204,6 +205,50 @@ Form */
 {
 	background-color: var(--disabled-background);
 	color: var(--disabled-text-color);
+}
+
+/* https://www.sliderrevolution.com/resources/css-select-styles/ */
+/* Pure CSS select option, Designed by: Anna Blok */
+select
+{
+	border:0!important;
+	background: var(--background-color);
+	color: var(--text-color);
+	text-align: center;
+	flex: 1;
+	padding: 0 .5em;
+	cursor:pointer;
+	font-size: 1.2em;
+}
+.select-arrow
+{
+	position: relative;
+	display: flex;
+	margin: 0 1.5em;
+	height: 1.5em;
+	line-height: 1.5;
+	overflow: hidden;
+	color: var(--accent1-color);
+	border-radius: .3em;
+	border-style: solid;
+	border-width: thin;
+	border-color: var(--accent1-color);
+}
+.select-arrow::after
+{
+	content: '\25BC';
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 0 1em;
+	background: var(--background-color);
+	cursor:pointer;
+	pointer-events:none;
+	transition:.25s all ease;
+}
+.select-arrow:hover::after
+{
+	color: var(--text-color);
 }
 
 /* ----------------------------------------------------------------------------------------- */
