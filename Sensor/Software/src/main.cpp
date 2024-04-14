@@ -85,13 +85,31 @@ void initEspNow(uint8_t wifiChannel)
 }
 
 /**
+ * Read the ADC value and average it 16 times
+ * https://www.esp8266.com/viewtopic.php?p=80628
+ */
+int readADC()
+{
+  int a;
+  int i;
+   
+  a = analogRead(A0);
+  a = 0;
+  for(i=0; i<16; i++) 
+  {
+    a += analogRead(A0);
+  }
+  return a>>4;
+}
+
+/**
  * Get the battery voltage by measuring the ADC value and scaling it by the resistor divider.
  * ADC_RESISTOR_R8 is from the battery voltage to the ADC input.
  * ADC_RESISTOR_R9 is from the ADC input to GND.
  */
 float getBatteryVoltage()
 {
-  int adcReadVal = analogRead(A0);
+  int adcReadVal = readADC();
   float adcVoltage_V = adcReadVal / 1023.0f;
   float batteryVoltage_V = adcVoltage_V * ((ADC_RESISTOR_R8 + ADC_RESISTOR_R9) / ADC_RESISTOR_R9);
 
