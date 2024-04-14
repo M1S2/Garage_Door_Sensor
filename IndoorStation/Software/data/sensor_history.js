@@ -36,6 +36,7 @@ function bodyLoaded()
 		currentSensorIndex++;
 		if (currentSensorIndex < NUM_SUPPORTED_SENSORS)
 		{
+			previous_response_length = 0;
 			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
 			xhr.send();
 		}
