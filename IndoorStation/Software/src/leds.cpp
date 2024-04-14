@@ -67,12 +67,6 @@ void leds_sensorCharging(uint8_t index)
 
 /**********************************************************************/
 
-void leds_wifiPairing()
-{
-    leds.setSegment(WIFI_LED_INDEX, WIFI_LED_INDEX, WIFI_LED_INDEX, FX_MODE_BLINK, COLORS(COLOR_PAIRING_1, COLOR_PAIRING_2), 800);
-    leds.addActiveSegment(WIFI_LED_INDEX);
-}
-
 void leds_wifiConnecting()
 {
     leds.setSegment(WIFI_LED_INDEX, WIFI_LED_INDEX, WIFI_LED_INDEX, FX_MODE_FADE, COLORS(COLOR_WIFI_CONNECTED, COLOR_OFF), 1000);

@@ -34,7 +34,6 @@ void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow = false);
 void leds_sensorPairing(uint8_t index);
 void leds_sensorCharging(uint8_t index);
 
-void leds_wifiPairing();
 void leds_wifiConnecting();
 void leds_wifiConnected();
 void leds_wifiFailed();

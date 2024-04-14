@@ -25,7 +25,7 @@
 // To increase the FS size https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
 
 uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
-Button2 btn_show_status, btn_wifi, btn_reset;             // create button objects
+Button2 btn_show_status, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
 bool sensor_message_received = false;
@@ -332,6 +332,8 @@ void initWebserverFiles()
     request->send(404, "text/plain", "Not found");
   });
 
+  // ----------------------------------
+  
   // Send a GET request to <ESP_IP>/set_mac_sensor
   server.on("/set_mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
@@ -362,6 +364,8 @@ void initWebserverFiles()
     request->redirect("/system_management.html");
   });
 
+  // ----------------------------------
+
   // Send a GET request to <ESP_IP>/download_data_sensor1
   server.on("/download_data", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
@@ -383,11 +387,15 @@ void initWebserverFiles()
     }
   });
 
+  // ----------------------------------
+
   // upload a file to /upload_data
   server.on("/upload_data", HTTP_POST, [](AsyncWebServerRequest *request)
   {
     request->send(200);
   }, onUpload);
+
+  // ----------------------------------
 
   // Send a GET request to <ESP_IP>/remove_data
   server.on("/remove_data", HTTP_GET, [] (AsyncWebServerRequest *request)
@@ -403,6 +411,9 @@ void initWebserverFiles()
     request->redirect("/system_management.html");
   });
 
+  // ----------------------------------
+
+  // Send a GET request to <ESP_IP>/get_data
   server.on("/get_data", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     serverGetDataSensorIndex = -1;
@@ -464,6 +475,8 @@ void initWebserverFiles()
     }
   });
 
+  // ----------------------------------
+
   // Send a GET request to <ESP_IP>/set_sensor_mode
   server.on("/set_sensor_mode", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
@@ -498,11 +511,6 @@ void setup()
   btn_show_status.setLongClickTime(500);
   btn_show_status.setDoubleClickTime(400);
   btn_show_status.setLongClickDetectedHandler(btnHandler_show_status_longClick);
-  //btn_wifi.begin(BTN_WIFI_PIN);   //INPUT_PULLUP
-  //btn_wifi.setDebounceTime(100);
-  //btn_wifi.setLongClickTime(500);
-  //btn_wifi.setDoubleClickTime(400);
-  //btn_wifi.setClickHandler(btnHandler_wifi_click);
   
   leds.init();
   leds.setBrightness(12);
@@ -557,7 +565,6 @@ void loop()
   wifiHandling_wifiManagerLoop();
   btn_reset.loop();
   btn_show_status.loop();
-  btn_wifi.loop();
   leds.service();
   otaUpdate_loop();
 
