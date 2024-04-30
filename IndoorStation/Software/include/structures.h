@@ -27,4 +27,11 @@ enum SensorModes
   SENSOR_MODE_PAIRING = 4,          // Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved
 };
 
+#define PAIRING_MAGIC_NUMBER    0xCAFEBEEF
+
+typedef struct __attribute__((packed)) message_pairing
+{
+  uint32_t pairingMagicNumber;         // This field contains a fixed number (0xCAFEBEEF). Only if this number is found, the MAC of the received message is saved by the Indoor Station.
+}message_pairing_t;
+
 #endif

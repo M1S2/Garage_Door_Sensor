@@ -35,10 +35,29 @@ typedef struct message_sensor
 }PACK_STRUCT_STRUCT message_sensor_t;
 PACK_STRUCT_END
 
-message_sensor_t sensor_message;
+#define PAIRING_MAGIC_NUMBER    0xCAFEBEEF
+
+PACK_STRUCT_BEGIN
+typedef struct message_pairing
+{
+  PACK_STRUCT_FIELD(uint32_t pairingMagicNumber);         // This field contains a fixed number (0xCAFEBEEF). Only if this number is found, the MAC of the received message is saved by the Indoor Station.
+}PACK_STRUCT_STRUCT message_pairing_t;
+PACK_STRUCT_END
 
 bool messageSentReady;
 bool messageSentSuccessful;
+
+bool isLedOn;
+void setLedState(bool on)
+{
+  isLedOn = on;
+  digitalWrite(LED_BUILTIN, isLedOn ? LOW : HIGH);
+}
+void toggleLedState()
+{
+  isLedOn = !isLedOn;
+  setLedState(isLedOn);
+}
 
 void OnDataSent(uint8_t* macAddr, uint8_t status)
 {
@@ -125,6 +144,7 @@ float getBatteryVoltage()
  */
 bool sendSensorData()
 {
+  message_sensor_t sensor_message;
   sensor_message.batteryVoltage_mV = getBatteryVoltage() * 1000;
   sensor_message.pinState = (digitalRead(DOOR_SWITCH_PIN) == HIGH);
   sensor_message.sensor_sw_version = ((SENSOR_SW_VERSION_MAJOR & 0xF) << 4) + (SENSOR_SW_VERSION_MINOR & 0xF);
@@ -132,8 +152,8 @@ bool sendSensorData()
   for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)
   {
     uint8_t wifiChannel = wifi_channel_order[wifiChannelIndex];
-
     initEspNow(wifiChannel);
+
     uint8_t loop_cnt = 0;
     do
     {
@@ -162,6 +182,46 @@ bool sendSensorData()
   return false;       // if ended here, the data couldn't be send on any channel
 }
 
+/**
+ * Send a pairing message to the indoor station. This only contains a magic number to verify the correctness of the data. The received MAC is then saved by the indoor station. Loop all channels when not successful.
+ * @return return true if send success; otherwise false
+ */
+bool sendPairingData()
+{
+  message_pairing_t pairing_message;
+  pairing_message.pairingMagicNumber = PAIRING_MAGIC_NUMBER;
+
+  for(uint8_t wifiChannelIndex = 0; wifiChannelIndex < MAX_WIFI_CHANNELS; wifiChannelIndex++)
+  {
+    uint8_t wifiChannel = wifi_channel_order[wifiChannelIndex];
+    initEspNow(wifiChannel);
+    
+    uint8_t loop_cnt = 0;
+    do
+    {
+      loop_cnt++;
+      messageSentReady = false;
+      esp_now_send(indoor_station_mac, (uint8_t *) &pairing_message, sizeof(pairing_message));
+      while(messageSentReady == false) { delay(1); /* wait here. */ }
+    }while(messageSentSuccessful == false && loop_cnt < MAX_SEND_RETRIES);
+
+    if(messageSentSuccessful)
+    {
+      #ifdef DEBUG_OUTPUT
+        Serial.printf("Send pairing message successful on channel %d.\n", wifiChannel);
+      #endif
+      return true;    // break the wifiChannel for loop and return true to signal send success
+    }
+    else
+    {
+      #ifdef DEBUG_OUTPUT
+        Serial.printf("Send pairing message not successful on channel %d. Move to next channel.\n", wifiChannel);
+      #endif
+    }
+  }
+  return false;       // if ended here, the data couldn't be send on any channel
+}
+
 void setup()
 {
   pinMode(MCU_LATCH_PIN, OUTPUT);
@@ -169,7 +229,7 @@ void setup()
 
   pinMode(DOOR_SWITCH_PIN, INPUT_PULLDOWN_16);
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);      // LED on
+  setLedState(true);    // LED on
 
   Serial.begin(115200);
   Serial.println();
@@ -184,8 +244,20 @@ void setup()
   sendSensorData();
 
   digitalWrite(MCU_LATCH_PIN, LOW);    // Disable latch pin to power off ESP
+
+  // delay 5 seconds after disabling the latch pin. If the ESP continues here and in the loop(), the sensor is held on via the pairing switch.
+  for(int i = 0; i < 5; i++)
+  {
+    toggleLedState();
+    delay(1000);
+  }
+  setLedState(true);    // LED on
 }
  
 void loop()
 {
+  // The pairing data is send until the pairing switch is released. Even if the indoor station received the pairing data, it is send by the sensor but ignored by the indoor station.
+  // No advanced acknowledge mechanism is used here.
+  sendPairingData();
+  toggleLedState();
 }

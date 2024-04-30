@@ -29,7 +29,8 @@ Button2 btn_show_status, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
 bool sensor_message_received = false;
-uint8_t sensor_message_received_mac_addr[6];
+bool pairing_message_received = false;
+uint8_t received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
 SensorModes sensor_modes[NUM_SUPPORTED_SENSORS];
@@ -86,9 +87,24 @@ void updateLastSensorMessages()
 
 void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 {
-  memcpy(&sensor_message, data, sizeof(sensor_message));
-  memcpy(&sensor_message_received_mac_addr, mac_addr, sizeof(sensor_message_received_mac_addr));
-  sensor_message_received = true;
+  memcpy(&received_mac_addr, mac_addr, sizeof(received_mac_addr));
+
+  // Get the first 4 bytes of the received data and check if it was a pairing message from the sensor
+  uint32_t magicNumber = 0;
+  if(len >= 4)
+  {
+    magicNumber = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
+  }
+
+  if(magicNumber == PAIRING_MAGIC_NUMBER)
+  {
+    pairing_message_received = true;
+  }
+  else
+  {
+    memcpy(&sensor_message, data, sizeof(sensor_message));
+    sensor_message_received = true;
+  }
 }
 
 /**********************************************************************/
@@ -572,16 +588,16 @@ void loop()
   {
     sensor_message_received = false;
 
-    Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", sensor_message_received_mac_addr[0], sensor_message_received_mac_addr[1], sensor_message_received_mac_addr[2], sensor_message_received_mac_addr[3], sensor_message_received_mac_addr[4], sensor_message_received_mac_addr[5]);    
+    Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
     int sensor_id = -1;
     for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
     {  
-      if(sensor_message_received_mac_addr[0] == sensor_macs[i][0] && 
-          sensor_message_received_mac_addr[1] == sensor_macs[i][1] &&
-          sensor_message_received_mac_addr[2] == sensor_macs[i][2] &&
-          sensor_message_received_mac_addr[3] == sensor_macs[i][3] &&
-          sensor_message_received_mac_addr[4] == sensor_macs[i][4] &&
-          sensor_message_received_mac_addr[5] == sensor_macs[i][5] &&
+      if(received_mac_addr[0] == sensor_macs[i][0] && 
+          received_mac_addr[1] == sensor_macs[i][1] &&
+          received_mac_addr[2] == sensor_macs[i][2] &&
+          received_mac_addr[3] == sensor_macs[i][3] &&
+          received_mac_addr[4] == sensor_macs[i][4] &&
+          received_mac_addr[5] == sensor_macs[i][5] &&
           (sensor_modes[i] == SENSOR_MODE_NORMAL || sensor_modes[i] == SENSOR_MODE_ONLY_DISPLAY))
       {
         sensor_id = i;
@@ -592,8 +608,7 @@ void loop()
         Serial.printf("Data received from Sensor %d \n\r", sensor_id);
         timeHandling_printSerial(now);
         
-        bool isOpen = (sensor_message.pinState == SENSOR_PIN_STATE_OPEN);
-        leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_message.batteryVoltage_mV));
+        updateLeds_sensorStatus();
 
         if(sensor_modes[i] == SENSOR_MODE_NORMAL)
         {
@@ -601,6 +616,27 @@ void loop()
         }
         
         break;  
+      }
+    }
+  }
+  else if(pairing_message_received)
+  {
+    pairing_message_received = false;
+
+    Serial.printf("Pairing message from MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
+    
+    for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
+    {
+      if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+      {
+        // save the received MAC address for the sensor which is in pairing mode and reset the sensor mode back to normal
+        for(uint8_t i = 0; i < 6; i++)
+        {
+          sensor_macs[sensorIndex][i] = received_mac_addr[i];
+        }
+        memory_saveSensorMacs(sensor_macs);
+        setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
+        break;
       }
     }
   }
