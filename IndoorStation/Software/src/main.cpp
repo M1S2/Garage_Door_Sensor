@@ -25,7 +25,7 @@
 // To increase the FS size https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
 
 uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
-Button2 btn_show_status, btn_reset;             // create button objects
+Button2 btn_pairing, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
 bool sensor_message_received = false;
@@ -109,6 +109,17 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
 /**********************************************************************/
 
+void setSensorMode(uint8_t sensorIndex, SensorModes mode)
+{
+  if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+  {
+    sensor_modes[sensorIndex] = mode;
+    updateLeds_sensorStatus();
+  }
+}
+
+/**********************************************************************/
+
 void btnHandler_reset_longClick(Button2& btn)
 {
   memory_removeAllData();
@@ -117,20 +128,48 @@ void btnHandler_reset_longClick(Button2& btn)
   ESP.restart();
 }
 
-void btnHandler_show_status_longClick(Button2& btn)
+void btnHandler_pairing_longClick(Button2& btn)
 {
-  Serial.println("Show all memory data (only for testing!)");
-  memory_showMemoryContent();
+  // button is pressed long:
+  // - if no sensor is in pairing mode, set the first sensor to pairing mode
+  // - if at least one sensor is in pairing mode, set all sensors that are in pairing mode to normal mode
+
+  uint8_t numSensorInPairingMode = 0;
+  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
+  {
+    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+    {
+      setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
+      numSensorInPairingMode++;
+    }
+  }
+  if(numSensorInPairingMode == 0)
+  {
+    setSensorMode(0, SENSOR_MODE_PAIRING);
+  }
 }
 
-/**********************************************************************/
-
-void setSensorMode(uint8_t sensorIndex, SensorModes mode)
+void btnHandler_pairing_click(Button2& btn)
 {
-  if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+  // button is pressed short:
+  // - if no sensor is in pairing mode, do nothing
+  // - otherwise find the index of the first sensor with pairing mode. Set it to normal mode and set the next sensor to pairing mode. If it was the last sensor begin with the first again.
+
+  int indexFirstSensorInPairingMode = -1;
+  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
   {
-    sensor_modes[sensorIndex] = mode;
-    updateLeds_sensorStatus();
+    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+    {
+      indexFirstSensorInPairingMode = sensorIndex;
+      break;
+    }
+  }
+
+  if(indexFirstSensorInPairingMode != -1)
+  {
+    setSensorMode(indexFirstSensorInPairingMode, SENSOR_MODE_NORMAL);
+    int indexNextSensor = (indexFirstSensorInPairingMode + 1) % NUM_SUPPORTED_SENSORS;  // increment to the next sensor and roll over at the last sensor.
+    setSensorMode(indexNextSensor, SENSOR_MODE_PAIRING);
   }
 }
 
@@ -522,11 +561,12 @@ void setup()
   btn_reset.setDebounceTime(100);
   btn_reset.setLongClickTime(1500);
   btn_reset.setLongClickDetectedHandler(btnHandler_reset_longClick);
-  btn_show_status.begin(BTN_SHOW_STATUS_PIN);   //INPUT_PULLUP
-  btn_show_status.setDebounceTime(100);
-  btn_show_status.setLongClickTime(500);
-  btn_show_status.setDoubleClickTime(400);
-  btn_show_status.setLongClickDetectedHandler(btnHandler_show_status_longClick);
+  btn_pairing.begin(BTN_PAIRING_PIN);   //INPUT_PULLUP
+  btn_pairing.setDebounceTime(100);
+  btn_pairing.setLongClickTime(500);
+  btn_pairing.setDoubleClickTime(400);
+  btn_pairing.setLongClickDetectedHandler(btnHandler_pairing_longClick);
+  btn_pairing.setClickHandler(btnHandler_pairing_click);
   
   leds.init();
   leds.setBrightness(12);
@@ -580,7 +620,7 @@ void loop()
 {
   wifiHandling_wifiManagerLoop();
   btn_reset.loop();
-  btn_show_status.loop();
+  btn_pairing.loop();
   leds.service();
   otaUpdate_loop();
 

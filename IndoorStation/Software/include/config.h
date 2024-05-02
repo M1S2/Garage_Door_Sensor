@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define BTN_SHOW_STATUS_PIN     12                        // The pin which is used for the show status button
+#define BTN_PAIRING_PIN         12                        // The pin which is used for the pairing button
 #define BTN_WIFI_PIN            13                        // The pin which is used for the Wifi button
 #define BTN_RESET_PIN           16                        // The pin which is used for the reset button
 

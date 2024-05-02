@@ -75,7 +75,17 @@ It is necessary to connect it to the WiFi. Otherwise the following steps can't b
 8. When successfully connected to the WiFi, the WiFi LED is solid blue.
 
 ### Pairing of the Sensor
-The pairing of the sensor is done via the web pages of the indoor station.
+The pairing of the sensor can be done via the pairing button of the indoor station and the pairing button of the corresponding sensor.
+1. Press the pairing button on the indoor station long. The first sensor led will start to flash blue and red.
+2. Press the pairing button on the indoor station short to select the sensor slot you want to pair.
+3. When the indoor station mode for the correct sensor is pairing, press and hold the pairing button on the sensor for at least 5 seconds (sensor must be switched on).
+4. If the pairing of the sensor was successful, the indoor station stopped to flash blue and red.
+
+Repeat all steps for all sensors.
+
+**Alternative:**
+
+The pairing of the sensor can also be done via the web pages of the indoor station.
 1. Open the web page (with one of the following ways):
    a) Enter the IP address that was assigned by your router in the address bar of your browser.
    b) For Fritz!Box: enter the following host name in the address bar of your browser: `garagen-tor-status.fritz.box`
@@ -110,33 +120,41 @@ To test the whole system, open and close one garage door after another and monit
 - When the second door is open, the LED "2" on the indoor station will be green.
 - All actual door states can also be monitored via the web page (overview page). To open the the web page, follow the steps at the ["Pairing the sensor" chapter](#pairing-of-the-sensor).
 
-### LED States
-| Led		 | Color 	| State    | Description						|
-|----------------|--------------|----------|------------------------------------------------------------|
-| Sensor #1 / #2 | red 		| solid    | Door is closed, battery ok 				|
-| Sensor #1 / #2 | red 		| flashing | Door is closed, battery empty 				|
-| Sensor #1 / #2 | green 	| solid    | Door is open, battery ok 					|
-| Sensor #1 / #2 | green 	| flashing | Door is open, battery empty 				|
-| Sensor #1 / #2 | purple 	| solid    | Sensor mode is charging 					|
-| Sensor #1 / #2 | red / blue	| blinking | Sensor mode is pairing 					|
-| Sensor #1 / #2 | / 		|  off     | Either no message received yet, or sensor mode is disabled |
-| Wifi  	 | blue 	| flashing | Trying to connect to WiFi 					|
-| Wifi  	 | blue 	| solid    | Connected to WiFi 						|
-| Wifi  	 | red 		| solid    | Connection to WiFi failed 					|
-| Wifi  	 | white 	| solid    | Configuration access point is open 			|
-| All  		 | yellow 	| blinking | OTA Update is in progress 					|
-| All  		 | green 	| solid    | OTA Update is in ready 					|
-| All  		 | red 		| solid    | OTA Update is in failed 					|
+## LED States
+| Led		         | Color 	    | State    | Description						                                    |
+|----------------|------------|----------|------------------------------------------------------------|
+| Sensor #1 / #2 | red 		    | solid    | Door is closed, battery ok 				                        |
+| Sensor #1 / #2 | red 		    | flashing | Door is closed, battery empty 				                      |
+| Sensor #1 / #2 | green 	    | solid    | Door is open, battery ok 					                        |
+| Sensor #1 / #2 | green 	    | flashing | Door is open, battery empty 				                        |
+| Sensor #1 / #2 | purple 	  | solid    | Sensor mode is charging 					                          |
+| Sensor #1 / #2 | red / blue	| blinking | Sensor mode is pairing 					                          |
+| Sensor #1 / #2 | / 		      |  off     | Either no message received yet, or sensor mode is disabled |
+| Wifi  	       | blue 	    | flashing | Trying to connect to WiFi 				                        	|
+| Wifi  	       | blue 	    | solid    | Connected to WiFi 					                                |
+| Wifi  	       | red 		    | solid    | Connection to WiFi failed 				                          |
+| Wifi  	       | white 	    | solid    | Configuration access point is open 			                  |
+| All  		       | yellow 	  | blinking | OTA Update is in progress 					                        |
+| All  		       | green 	    | solid    | OTA Update is in ready 					                          |
+| All  		       | red 		    | solid    | OTA Update is in failed 					                          |
 
+## Button Reactions:
+| Button  | Click Type  | Precondition                            | Description                                                                 |
+|---------|-------------|-----------------------------------------|-----------------------------------------------------------------------------|
+| Reset   | long press  | always                                  | Memory data and WiFi credentials are erased                                 |
+| Pairing | long press  | no sensor is in pairing mode            | Set first sensor to pairing mode (start pairing)                            |
+| Pairing | long press  | at least one sensor is in pairing mode  | Set all sensors that are in pairing mode back to normal mode (end pairing)  |
+| Pairing | short click | no sensor is in pairing mode            | Do nothing                                                                  |
+| Pairing | short click | at least one sensor is in pairing mode  | Find the first sensor with pairing mode. Set it to normal mode and set the next sensor to pairing mode. If it was the last sensor begin with the first again. |
 
-### Sensor Modes
-| Mode 		| Description 																	|
+## Sensor Modes
+| Mode 		      | Description 													                                                                                                				|
 |---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| Normal	| All messages are received, everything is saved, LED on											|
-| Disabled	| All messages are ignored, nothing is saved, LED off												|
-| Charging	| All messages are ignored, nothing is saved, LED in different color										|
-| Only Display	| Messages are only displayed via the LED, nothing is saved											|
-| Pairing	| Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved	|
+| Normal	      | All messages are received, everything is saved, LED on								                                                                  			|
+| Disabled	    | All messages are ignored, nothing is saved, LED off										                                                                    		|
+| Charging	    | All messages are ignored, nothing is saved, LED in different color								                                                        		|
+| Only Display  | Messages are only displayed via the LED, nothing is saved											                                                                |
+| Pairing	      | Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved	  |
 
 ## Developer Hints
 - The sensor is designed to consume as less power as possible. Therefore the ESP8266 on the sensor is only switched on when the pin state changed and only as long until the data is sent to the indoor station.
