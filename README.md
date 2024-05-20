@@ -45,7 +45,7 @@ Also the following additional parts are necessary:
 - 4x Screw M3x30
 - 4x Heat Inserts M3x5x5
 - 1x Li-Ion 18650 (e.g. https://www.roboter-bausatz.de/p/bak-18650-lithium-ionen-akku-2900mah-3-6v-3-7v-erhoehter-pluspol)
-- 1x Charge Modul MicroUSB (e.g. https://www.roboter-bausatz.de/p/tp4056-lithium-lipo-lion-akku-solar-lademodul-fuer-arduino-micro-usb)
+- 1x Charge Modul USB-C (e.g. https://www.roboter-bausatz.de/p/lithium-batterie-lademodul-usb-c-ip2312-4-2v-5v)
 - 2x Magnet for Door Mount
 
 The following image shows all parts of the Sensor:
@@ -62,6 +62,16 @@ Use the `Monitor` PlatformIO task to view the output messages at startup and not
 
 ## Usage
 This chapter describes the basic usage of the indoor station and sensor. It is necessary to build at least one device each before proceding.
+### Charging the sensor
+Switch off the sensor via the switch on the back side and connect it to an USB-C charger. Make sure the charger is capable of delivering enough energy. Otherwise the charging process will be slow.
+
+Charger LED states:
+
+|LED		|Meaning		|
+|---------------|-----------------------|
+|Red solid	|Powered via USB-C	|
+|Blue solid	|Charging complete	|
+
 ### WiFi Setup
 The indoor station isn't yet connected to your local WiFi the first time you use it or after a reset.
 It is necessary to connect it to the WiFi. Otherwise the following steps can't be done and the indoor station can't receive the sensor messages.
