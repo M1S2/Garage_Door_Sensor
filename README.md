@@ -70,7 +70,7 @@ Charger LED states:
 |LED		|Meaning		|
 |---------------|-----------------------|
 |Red solid	|Powered via USB-C	|
-|Blue solid	|Charging complete	|
+|Green solid	|Charging complete	|
 
 ### WiFi Setup
 The indoor station isn't yet connected to your local WiFi the first time you use it or after a reset.
