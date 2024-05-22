@@ -44,6 +44,11 @@ function bodyLoaded()
 		{
 			chart_accu.hideLoading();
 			chart_pinState.hideLoading();
+
+			// Click the "All" button (index 4 in the rangeSelector) after loading to make sure, everything is shown
+			// https://www.highcharts.com/forum/viewtopic.php?t=27631
+			chart_accu.rangeSelector.clickButton(4, { type:'all' }, true);
+			chart_pinState.rangeSelector.clickButton(4, { type:'all' }, true);
 		}
 	});
 	xhr.send();
