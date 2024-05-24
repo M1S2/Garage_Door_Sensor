@@ -104,7 +104,7 @@ Highcharts.setOptions(
 			animation: false,
 			dataLabels:
 			{
-				enabled: true
+				enabled: false
 			}
 		}
 	},
@@ -261,13 +261,6 @@ var chart_accu = new Highcharts.stockChart('chart-accu',
 			{
 				pointFormat: '<b>{point.y:.1f}%</b>'
 			}
-		},
-		line:
-		{
-			dataLabels:
-			{
-				format: '{y:.1f}'
-			}
 		}
 	},
 	xAxis:
@@ -306,19 +299,6 @@ var chart_pinState = new Highcharts.stockChart('chart-pinState',
 		data: [],
 		color: style.getPropertyValue('--sensor2-color')
 	}],
-	plotOptions:
-	{
-		line:
-		{
-			dataLabels:
-			{
-				formatter: function () 
-				{
-					return (this.point.y == 0 ? 'Auf' : (this.point.y == 1 ? 'Zu' : ''));
-				}
-			}
-		}
-	},
 	xAxis:
 	{
 		ordinal: false
