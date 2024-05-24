@@ -7,12 +7,16 @@
 void memory_removeAllData()
 {
     memory_removeSensorHistory(-1);
+
     LittleFS.remove(FILENAME_SENSOR_MACS);
+    // set all MACs to all zeroes
+    uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6] = {0};
+    memory_saveSensorMacs(sensor_macs);
 }
 
-void memory_removeSensorHistory(uint8_t sensorIndex)
+void memory_removeSensorHistory(int8_t sensorIndex)
 {
-    if(sensorIndex == -1)
+    if(sensorIndex < 0)
     {
         for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
         {

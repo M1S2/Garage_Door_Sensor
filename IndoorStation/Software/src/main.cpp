@@ -124,7 +124,7 @@ void btnHandler_reset_longClick(Button2& btn)
 {
   memory_removeAllData();
   wifiHandling_eraseCredentials();
-  delay(1000);
+  delay(2000);
   ESP.restart();
 }
 

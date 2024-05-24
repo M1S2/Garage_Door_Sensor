@@ -17,7 +17,7 @@ void memory_removeAllData();
  * Delete the sensor history data for the requested sensor.
  * @param sensorIndex Index of the sensor for which the data file is deleted. Use -1 to delete all sensor history data files.
  */
-void memory_removeSensorHistory(uint8_t sensorIndex);
+void memory_removeSensorHistory(int8_t sensorIndex);
 
 /**
  * Construct a string that describes how much memory of the LittleFS is used.
