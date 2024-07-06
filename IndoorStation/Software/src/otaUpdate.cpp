@@ -15,7 +15,9 @@ void onOTAStart()
     LittleFS.end();
 
     leds_otaStart();
-    Serial.println("OTA update started!");
+    #ifdef DEBUG_OUTPUT
+        Serial.println("OTA update started!");
+    #endif
 }
 
 void onOTAProgress(size_t current, size_t final)
@@ -24,7 +26,9 @@ void onOTAProgress(size_t current, size_t final)
     if (millis() - ota_progress_millis > 1000)
     {
         ota_progress_millis = millis();
-        Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
+        #ifdef DEBUG_OUTPUT
+            Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
+        #endif
     }
 }
 
@@ -40,11 +44,15 @@ void onOTAEnd(bool success)
     
     if (success)
     {
-        Serial.println("OTA update finished successfully!");
+        #ifdef DEBUG_OUTPUT
+            Serial.println("OTA update finished successfully!");
+        #endif
     } 
     else 
     {
-        Serial.println("There was an error during OTA update!");
+        #ifdef DEBUG_OUTPUT
+            Serial.println("There was an error during OTA update!");
+        #endif
     }
 }
 

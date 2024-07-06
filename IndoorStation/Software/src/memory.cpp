@@ -45,29 +45,31 @@ const char* memory_getMemoryUsageString()
 
 void memory_showMemoryContent()
 {
-    FSInfo info;
-    LittleFS.info(info);
-    Serial.println("--- File System usage");
-    Serial.println(memory_getMemoryUsageString());
-    
-    Serial.println("--- MACs");
-    MacArrayStruct_t macStruct = memory_getSensorMacs();
-    for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
-    {
-        Serial.printf("MAC Sensor #%d: %02X:%02X:%02X:%02X:%02X:%02X \n", sensorIdx + 1, macStruct.macs[sensorIdx][0], macStruct.macs[sensorIdx][1], macStruct.macs[sensorIdx][2], macStruct.macs[sensorIdx][3], macStruct.macs[sensorIdx][4], macStruct.macs[sensorIdx][5]);    
-    }
-
-    for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
-    {
-        uint16_t numberMessages = memory_getNumberSensorMessages(sensorIdx);
-        Serial.printf("--- Data for sensor %d (%d messages)\n", sensorIdx, numberMessages);
-        message_sensor_timestamped_t sensorMessages[numberMessages];
-        memory_getSensorMessagesForSensor(sensorIdx, sensorMessages);
-        for(int msgIdx = 0; msgIdx < numberMessages; msgIdx++)
+    #ifdef DEBUG_OUTPUT
+        FSInfo info;
+        LittleFS.info(info);
+        Serial.println("--- File System usage");
+        Serial.println(memory_getMemoryUsageString());
+        
+        Serial.println("--- MACs");
+        MacArrayStruct_t macStruct = memory_getSensorMacs();
+        for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
         {
-            Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", sensorMessages[msgIdx].timestamp, sensorMessages[msgIdx].msg.pinState, sensorMessages[msgIdx].msg.batteryVoltage_mV);
+            Serial.printf("MAC Sensor #%d: %02X:%02X:%02X:%02X:%02X:%02X \n", sensorIdx + 1, macStruct.macs[sensorIdx][0], macStruct.macs[sensorIdx][1], macStruct.macs[sensorIdx][2], macStruct.macs[sensorIdx][3], macStruct.macs[sensorIdx][4], macStruct.macs[sensorIdx][5]);    
         }
-    }
+
+        for(int sensorIdx = 0; sensorIdx < NUM_SUPPORTED_SENSORS; sensorIdx++)
+        {
+            uint16_t numberMessages = memory_getNumberSensorMessages(sensorIdx);
+            Serial.printf("--- Data for sensor %d (%d messages)\n", sensorIdx, numberMessages);
+            message_sensor_timestamped_t sensorMessages[numberMessages];
+            memory_getSensorMessagesForSensor(sensorIdx, sensorMessages);
+            for(int msgIdx = 0; msgIdx < numberMessages; msgIdx++)
+            {
+                Serial.printf("time=%lld, pinState=%d, voltage_mV=%d\n", sensorMessages[msgIdx].timestamp, sensorMessages[msgIdx].msg.pinState, sensorMessages[msgIdx].msg.batteryVoltage_mV);
+            }
+        }
+    #endif
 }
 
 uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex)

@@ -23,43 +23,47 @@ void timeHandling_init()
 
 void timeHandling_printSerial(time_t time)
 {
-    tm tm;                            // the structure tm holds time information in a more convenient way
-    localtime_r(&time, &tm);          // update the structure tm with the current time
-    Serial.print("year:");
-    Serial.print(tm.tm_year + 1900);  // years since 1900
-    Serial.print("\tmonth:");
-    Serial.print(tm.tm_mon + 1);      // January = 0 (!)
-    Serial.print("\tday:");
-    Serial.print(tm.tm_mday);         // day of month
-    Serial.print("\thour:");
-    Serial.print(tm.tm_hour);         // hours since midnight  0-23
-    Serial.print("\tmin:");
-    Serial.print(tm.tm_min);          // minutes after the hour  0-59
-    Serial.print("\tsec:");
-    Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
-    Serial.print("\twday");
-    Serial.print(tm.tm_wday);         // days since Sunday 0-6
-    if (tm.tm_isdst == 1)             // Daylight Saving Time flag
-    {
-        Serial.print("\tDST");
-    }
-    else
-    {
-        Serial.print("\tstandard");
-    }
-    Serial.println();
+    #ifdef DEBUG_OUTPUT
+        tm tm;                            // the structure tm holds time information in a more convenient way
+        localtime_r(&time, &tm);          // update the structure tm with the current time
+        Serial.print("year:");
+        Serial.print(tm.tm_year + 1900);  // years since 1900
+        Serial.print("\tmonth:");
+        Serial.print(tm.tm_mon + 1);      // January = 0 (!)
+        Serial.print("\tday:");
+        Serial.print(tm.tm_mday);         // day of month
+        Serial.print("\thour:");
+        Serial.print(tm.tm_hour);         // hours since midnight  0-23
+        Serial.print("\tmin:");
+        Serial.print(tm.tm_min);          // minutes after the hour  0-59
+        Serial.print("\tsec:");
+        Serial.print(tm.tm_sec);          // seconds after the minute  0-61*
+        Serial.print("\twday");
+        Serial.print(tm.tm_wday);         // days since Sunday 0-6
+        if (tm.tm_isdst == 1)             // Daylight Saving Time flag
+        {
+            Serial.print("\tDST");
+        }
+        else
+        {
+            Serial.print("\tstandard");
+        }
+        Serial.println();
+    #endif
 }
 
 void timeHandling_printNowSerial() 
 {
-    if(!isTimeValid)
-    {
-        Serial.println("Time wasn't synchronised yet.");
-    }
-    else
-    {
-        time_t now;                       // this are the seconds since Epoch (1970) - UTC
-        time(&now);                       // read the current time
-        timeHandling_printSerial(now);
-    }
+    #ifdef DEBUG_OUTPUT
+        if(!isTimeValid)
+        {
+            Serial.println("Time wasn't synchronised yet.");
+        }
+        else
+        {
+            time_t now;                       // this are the seconds since Epoch (1970) - UTC
+            time(&now);                       // read the current time
+            timeHandling_printSerial(now);
+        }
+    #endif
 }

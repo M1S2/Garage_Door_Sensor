@@ -554,7 +554,9 @@ void initWebserverFiles()
 
 void setup()
 {
-  Serial.begin(115200);
+  #ifdef DEBUG_OUTPUT
+    Serial.begin(115200);
+  #endif
   pinMode(LED_BUILTIN, OUTPUT);
 
   btn_reset.begin(BTN_RESET_PIN);   //INPUT_PULLUP
@@ -576,7 +578,9 @@ void setup()
   // Begin LittleFS
   if (!LittleFS.begin())
   {
-    Serial.println("An Error has occurred while mounting LittleFS");
+    #ifdef DEBUG_OUTPUT
+      Serial.println("An Error has occurred while mounting LittleFS");
+    #endif
     return;
   }
 
@@ -591,8 +595,10 @@ void setup()
 
   updateLastSensorMessages();
 
-  Serial.print("My MAC-Address: ");
-  Serial.println(WiFi.macAddress());
+  #ifdef DEBUG_OUTPUT
+    Serial.print("My MAC-Address: ");
+    Serial.println(WiFi.macAddress());
+  #endif
 
   timeHandling_init();
 
@@ -601,11 +607,15 @@ void setup()
 
   if (esp_now_init() == 0) 
   {
-    Serial.println("ESPNow Init success");
+    #ifdef DEBUG_OUTPUT
+      Serial.println("ESPNow Init success");
+    #endif
   }
   else 
   {
-    Serial.println("ESPNow Init fail");
+    #ifdef DEBUG_OUTPUT
+      Serial.println("ESPNow Init fail");
+    #endif
     return;
   }
 
@@ -628,8 +638,9 @@ void loop()
   {
     sensor_message_received = false;
 
-    Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
-    int sensor_id = -1;
+    #ifdef DEBUG_OUTPUT
+      Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
+    #endif
     for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
     {  
       if(received_mac_addr[0] == sensor_macs[i][0] && 
@@ -640,12 +651,13 @@ void loop()
           received_mac_addr[5] == sensor_macs[i][5] &&
           (sensor_modes[i] == SENSOR_MODE_NORMAL || sensor_modes[i] == SENSOR_MODE_ONLY_DISPLAY))
       {
-        sensor_id = i;
         sensor_messages_latest[i].msg = sensor_message;
         time_t now;
         time(&now);
         sensor_messages_latest[i].timestamp = now;
-        Serial.printf("Data received from Sensor %d \n\r", sensor_id);
+        #ifdef DEBUG_OUTPUT
+          Serial.printf("Data received from Sensor %d \n\r", i);
+        #endif
         timeHandling_printSerial(now);
         
         updateLeds_sensorStatus();
@@ -663,8 +675,10 @@ void loop()
   {
     pairing_message_received = false;
 
-    Serial.printf("Pairing message from MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
-    
+    #ifdef DEBUG_OUTPUT
+      Serial.printf("Pairing message from MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
+    #endif
+
     for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
     {
       if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)

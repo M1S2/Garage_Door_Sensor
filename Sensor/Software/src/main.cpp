@@ -20,7 +20,7 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 #define ADC_RESISTOR_R8     390.0f  // Resistor value in kOhm, from the battery voltage to the ADC input
 #define ADC_RESISTOR_R9     100.0f  // Resistor value in kOhm, from the ADC input to GND
 
-#define DEBUG_OUTPUT                // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save power, except the version of this SW and the MAC that is always printed at the beginning)
+//#define DEBUG_OUTPUT                // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save battery power)
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
 
@@ -239,12 +239,14 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
   setLedState(true);    // LED on
 
-  Serial.begin(115200);
-  Serial.println();
-  Serial.print("Version of Garage Door Sensor SW: v");
-  Serial.printf("%d.%d\n", SENSOR_SW_VERSION_MAJOR, SENSOR_SW_VERSION_MINOR);
-  Serial.print("My MAC-Address: ");
-  Serial.println(WiFi.macAddress());
+  #ifdef DEBUG_OUTPUT
+    Serial.begin(115200);
+    Serial.println();
+    Serial.print("Version of Garage Door Sensor SW: v");
+    Serial.printf("%d.%d\n", SENSOR_SW_VERSION_MAJOR, SENSOR_SW_VERSION_MINOR);
+    Serial.print("My MAC-Address: ");
+    Serial.println(WiFi.macAddress());
+  #endif
 
   sendSensorData(false);
 

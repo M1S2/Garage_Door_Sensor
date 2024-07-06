@@ -18,4 +18,6 @@
 // https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8
 #define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])
 
+//#define DEBUG_OUTPUT                                      // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save power)
+
 #endif

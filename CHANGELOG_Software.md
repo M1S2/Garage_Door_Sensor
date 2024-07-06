@@ -1,5 +1,13 @@
 # Garagen Door Sensor - Software Changelog
 
+## v2.2
+
+> Sensor
+- Disabled debug output to save power
+
+> Indoor Station
+- Added define to disable debug output
+
 ## v2.1
 
 > Sensor

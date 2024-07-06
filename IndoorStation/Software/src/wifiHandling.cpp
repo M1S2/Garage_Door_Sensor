@@ -22,7 +22,9 @@ void wifiHandling_eraseCredentials()
     leds_wifiFailed();
     WiFi.disconnect(true);
     ESP.eraseConfig();
-    Serial.println("WiFi credentials erased");
+    #ifdef DEBUG_OUTPUT
+        Serial.println("WiFi credentials erased");
+    #endif
 }
 
 void onWifiConnect(const WiFiEventStationModeGotIP& event) 
@@ -52,10 +54,12 @@ void wifiHandling_wifiManagerSaveCB()
     WiFi.mode(WIFI_AP_STA);
     WiFi.begin();
 
-    Serial.print("Station IP Address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Wi-Fi Channel: ");
-    Serial.println(WiFi.channel());
+    #ifdef DEBUG_OUTPUT
+        Serial.print("Station IP Address: ");
+        Serial.println(WiFi.localIP());
+        Serial.print("Wi-Fi Channel: ");
+        Serial.println(WiFi.channel());
+    #endif
 
     // https://randomnerdtutorials.com/solved-reconnect-esp8266-nodemcu-to-wifi/
     WiFi.setAutoReconnect(true);
@@ -85,6 +89,12 @@ void wifiHandling_wifiManagerLoop()
 
 void wifiHandling_init()
 {
+    #ifdef DEBUG_OUTPUT
+        wifiManager.setDebugOutput(true);
+    #else
+        wifiManager.setDebugOutput(false);
+    #endif
+
     wifiManager.setSaveConfigCallback(wifiHandling_wifiManagerSaveCB);
     wifiManager.setAPCallback(wifiHandling_wifiManagerAPOpenedCB);
 
@@ -106,7 +116,9 @@ void wifiHandling_init()
         if (millis() > start + CONNECTION_TIMEOUT_MS)
         {
             keepConnecting = false;
-            Serial.println("Connection timed out");
+            #ifdef DEBUG_OUTPUT
+                Serial.println("Connection timed out");
+            #endif
         }
         if (connectionStatus == WL_CONNECTED || connectionStatus == WL_CONNECT_FAILED)
         {
