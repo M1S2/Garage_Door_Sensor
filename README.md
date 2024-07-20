@@ -98,12 +98,14 @@ Repeat all steps for all sensors.
 The pairing of the sensor can also be done via the web pages of the indoor station.
 1. Open the web page (with one of the following ways):
    a) Enter the IP address that was assigned by your router in the address bar of your browser.
-   b) For Fritz!Box: enter the following host name in the address bar of your browser: `garagen-tor-status.fritz.box`
+   b) For Fritz!Box: enter the following host name in the address bar of your browser: `garagen-tor-status.fritz.box` (or scan the QR code below)
 2. Change to the configuration page (gear icon)
 3. Enter the MAC address of the sensor to pair in the textbox of the corresponding sensor and click submit.
 4. All messages of this sensor are now received for the sensor index where the MAC address was entered.
 
 Repeat steps 3. and 4. for all sensors.
+
+![Indoor Station web page QR Code](Images/QR_Code_IndoorStation_URL_FritzBox.png)
 
 ### Mounting the Sensor and Magnet
 To mount the sensor and magnet to the garage door:
@@ -170,3 +172,8 @@ To test the whole system, open and close one garage door after another and monit
 - The sensor is designed to consume as less power as possible. Therefore the ESP8266 on the sensor is only switched on when the pin state changed and only as long until the data is sent to the indoor station.
 - The sensor trys to send the data on all available WiFi channels until success. The most common used channels are tried first.
 - The indoor station can be updated using over the air (OTA) updates. The first time the firmware must be flashed via serial, the OTA is available by navigating to `garagen-tor-status.fritz.box/update` in the browser.
+
+## Further Improvements
+- Move the pairing button of the Indoor Station to the backside of the housing (not used very often, cleaner front side) 
+- Remove ConnectorLid of Indoor Station housing (software updates are possible via OTA, no need to open the housing very often)
+- Remove the on/off switch from the Indoor Station PCB (not really used, disconnecting power supply is enough)
