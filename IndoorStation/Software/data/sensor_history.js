@@ -15,16 +15,37 @@ function bodyLoaded()
 		var chunk = xhr.responseText.slice(previous_response_length);
 		previous_response_length = xhr.responseText.length;
 
-		chunk.split("}{").forEach((element) => 
+		// Use .some() instead of .forEach() to be able to break the loop
+		chunk.split("}{").some(function(element)
 		{
+			var originalElementLength = element.length;
 			if(!element.startsWith("{")) { element = "{" + element; }
 			if(!element.endsWith("}")) { element = element + "}"; }
 			console.log("element = " + element);
 
-			var obj = JSON.parse(element);
-			var x = obj.time * 1000;
-			chart_accu.series[currentSensorIndex].addPoint([x, obj.batP], false, false, false);
-			chart_pinState.series[currentSensorIndex].addPoint([x, obj.pin ? 1 : 0], false, false, false);
+			try
+			{
+				var obj = JSON.parse(element);
+				if(!("time" in obj) || !("batP" in obj) || !("pin" in obj))
+				{
+					// property in object is missing. Wait for the rest of the message
+					console.log("not all properties found in object.");
+					throw new Error("Not all properties found");
+				}
+				var x = obj.time * 1000;
+				chart_accu.series[currentSensorIndex].addPoint([x, obj.batP], false, false, false);
+				chart_pinState.series[currentSensorIndex].addPoint([x, obj.pin ? 1 : 0], false, false, false);
+				// Return false to "continue" the "forEach" loop (.some(...))
+				return false;
+			}
+			catch(error)
+			{
+				console.log("uncomplete element received. Rewind position and wait for the rest.")
+				// Rewind the chunk position to the beginning of this element (uncomplete parts received)
+				previous_response_length -= (originalElementLength + 1);
+				// Return true to break the "forEach" loop (.some(...))
+				return true;
+			}
 		});
 		// redraw the charts after each chunk of data
 		chart_accu.redraw();
