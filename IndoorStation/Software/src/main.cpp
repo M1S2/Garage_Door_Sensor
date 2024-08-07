@@ -382,6 +382,12 @@ void initWebserverFiles()
     request->send(LittleFS, "/system_management.js", "text/javascript"); 
   });
 
+  // Route for root version.js
+  server.on("/version.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(LittleFS, "/version.js", "text/javascript"); 
+  });
+
   server.onNotFound([](AsyncWebServerRequest *request)
   {
     request->send(404, "text/plain", "Not found");

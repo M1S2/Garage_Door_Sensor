@@ -1,5 +1,16 @@
 # Garagen Door Sensor - Software Changelog
 
+## v2.3
+
+> Sensor
+- Nothing changed (equal to v2.2)
+
+> Indoor Station
+- Added a QR code for the indoor station web page to the Readme
+- Adaptions to the Readme
+- Bugfix for sensor_history.js (chart was incomplete or contained wrong data when incomplete chunks were received)
+- Added version tag for the webpages
+
 ## v2.2
 
 > Sensor

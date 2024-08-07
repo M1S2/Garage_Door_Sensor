@@ -10,6 +10,8 @@ function bodyLoaded()
 
 	document.getElementById("sensor_mode_1").value = document.getElementById("sensor_mode_selectedIndex_1").value;
 	document.getElementById("sensor_mode_2").value = document.getElementById("sensor_mode_selectedIndex_2").value;
+
+	document.getElementById("webpage_version").innerText = window.GARAGE_DOOR_INDOOR_STATION_WEBPAGE_VERSION;
 }
 
 function submitMacMessage()
