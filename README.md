@@ -172,7 +172,7 @@ To test the whole system, open and close one garage door after another and monit
 - The sensor is designed to consume as less power as possible. Therefore the ESP8266 on the sensor is only switched on when the pin state changed and only as long until the data is sent to the indoor station.
 - The sensor trys to send the data on all available WiFi channels until success. The most common used channels are tried first.
 - The indoor station can be updated using over the air (OTA) updates. The first time the firmware must be flashed via serial, the OTA is available by navigating to `garagen-tor-status.fritz.box/update` in the browser.
-- Accessing the indoor station web pages via the IP address (e.g. 192.168.178.x) gives the fastest responses but isn't really intuitive. The FritzBox offers the possibility to alternatively navigate to `garagen-tor-status.fritz.box`. The correct IP address is resolved via DNS, but this can be really slow. You can disable the DNS-Rebinding-Protection for this specific URL to speed up the navigation. Follow this article: https://avm.de/service/wissensdatenbank/dok/FRITZ-Box-7490/3565_FRITZ-Box-meldet-Der-DNS-Rebind-Schutz-Ihrer-FRITZ-Box-hat-Ihre-Anfrage-aus-Sicherheitsgrunden-abgewiesen/
+- Accessing the indoor station web pages via the IP address (e.g. 192.168.x.x) isn't really intuitive. The FritzBox offers the possibility to alternatively navigate to `garagen-tor-status.fritz.box`. The correct IP address is then resolved via DNS.
 
 ## Further Improvements
 - Move the pairing button of the Indoor Station to the backside of the housing (not used very often, cleaner front side) 
