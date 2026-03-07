@@ -4,4 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 
+mock_server/node_modules/
+
 include/addresses.h

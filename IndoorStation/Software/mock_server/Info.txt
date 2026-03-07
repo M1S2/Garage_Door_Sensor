@@ -1,0 +1,19 @@
+Installation:
+=============
+1. Install Node.js: https://nodejs.org/
+2. CMD: cd <project_root>/IndoorStation/Software/mock_server
+3. CMD: npm ci
+
+Start server with:
+==================
+CMD: node mock_server.js
+
+Restart server (on changes at mock_server.js) with:
+===================================================
+<Ctrl>+C
+CMD: node mock_server.js
+
+Access local websites:
+======================
+BROWSER: http://localhost/sensor_history.html
+The data is provided by the mock_server.js script from the mockDataSensor0.bin and mockDataSensor1.bin files

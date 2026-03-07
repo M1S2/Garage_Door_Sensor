@@ -427,7 +427,7 @@ void initWebserverFiles()
 
   // ----------------------------------
 
-  // Send a GET request to <ESP_IP>/download_data_sensor1
+  // Send a GET request to <ESP_IP>/download_data
   server.on("/download_data", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     int8_t sensorIndex = -1;
