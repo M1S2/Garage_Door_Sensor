@@ -21,7 +21,21 @@
 			<a href="/sensor_history.html" class="active"><i class="material-symbols-outlined">monitoring</i> Sensor Diagramme</a>
 		</nav>
 		
-		<div class="content">	
+		<div class="content">
+			<div class="content-horizontal">
+				<input type="checkbox" class="checkbox" id="all-data">
+				<div>Kompletter Zeitraum</div>
+				
+				<div id="date-controls">
+					<div>Von:</div>
+					<input type="datetime-local" id="date-from">
+					<div>Bis:</div>
+					<input type="datetime-local" id="date-to">
+					<div id="day-count"></div>
+				</div>
+				<button class="submit_button" onclick="loadData()">Daten laden</button>
+			</div>
+
 			<div id="chart-accu" class="container"></div>
 			<br>
 			<br>

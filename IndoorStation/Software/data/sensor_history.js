@@ -1,15 +1,134 @@
 const NUM_SUPPORTED_SENSORS = 2		// The number of supported sensors. This must match the #define NUM_SUPPORTED_SENSORS
 
-var previous_response_length = 0;
-var currentSensorIndex = 0;
 function bodyLoaded()
 {
+	clearCharts();
+	chart_accu.showLoading("Neue Daten über den Button oben laden...");
+	chart_pinState.showLoading("Neue Daten über den Button oben laden...");
+
+	restoreSettings();
+    setupEventHandlers();
+}
+
+function restoreSettings()
+{
+    const all = sessionStorage.getItem("sensorHistory_all");
+    const from = sessionStorage.getItem("sensorHistory_from");
+    const to = sessionStorage.getItem("sensorHistory_to");
+
+    if(all === null && from === null && to === null)
+    {
+		// first call to this website -> set default values
+		// init the date controls to a range from (now - initialTimespanDays days) to (now)
+		const now = new Date();
+		const initialTimespanDays = 30;
+		const fromDate = new Date(now.getTime() - initialTimespanDays*86400*1000);
+		document.getElementById("date-from").value = fromDate.toISOString().slice(0,16);
+		document.getElementById("date-to").value = now.toISOString().slice(0,16);
+		document.getElementById("all-data").checked = false;
+    }
+    else
+    {
+        if(all !== null)
+            document.getElementById("all-data").checked = (all === "true");
+
+        if(from)
+            document.getElementById("date-from").value = from;
+
+        if(to)
+            document.getElementById("date-to").value = to;
+    }
+    toggleDateControlsVisibility();
+	updateDayCount();
+}
+
+function saveSettings()
+{
+    sessionStorage.setItem("sensorHistory_all", document.getElementById("all-data").checked);
+    sessionStorage.setItem("sensorHistory_from", document.getElementById("date-from").value);
+    sessionStorage.setItem("sensorHistory_to", document.getElementById("date-to").value);
+}
+
+function setupEventHandlers()
+{
+    document.getElementById("all-data").addEventListener("change", function()
+    {
+        toggleDateControlsVisibility();
+        saveSettings();
+    });
+
+    document.getElementById("date-from").addEventListener("change", function()
+	{
+		updateDayCount();
+		saveSettings();
+	});
+    document.getElementById("date-to").addEventListener("change", function()
+	{
+		updateDayCount();
+		saveSettings();
+	});
+}
+
+function toggleDateControlsVisibility()
+{
+	const allDataChecked = document.getElementById("all-data").checked;
+	const dateControls = document.getElementById("date-controls");
+	if(allDataChecked)
+    {
+        dateControls.style.display = "none";
+    }
+    else
+    {
+        dateControls.style.display = "flex";
+    }
+}
+
+function updateDayCount()
+{
+    const date_from = document.getElementById("date-from").value;
+    const date_to = document.getElementById("date-to").value;
+    if(!date_from || !date_to)
+    {
+        document.getElementById("day-count").textContent = "";
+        return;
+    }
+
+    const diffMs = new Date(date_to) - new Date(date_from);
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    document.getElementById("day-count").textContent = diffDays.toFixed(0) + " Tage";
+}
+
+function clearCharts()
+{
+    chart_accu.series.forEach(s => s.setData([]));
+    chart_pinState.series.forEach(s => s.setData([]));
+}
+
+var previous_response_length = 0;
+var currentSensorIndex = 0;
+function loadData()
+{
+	const date_from = document.getElementById("date-from").value;
+    const date_to = document.getElementById("date-to").value;
+    const date_from_Ts = Math.floor(new Date(date_from).getTime() / 1000);
+    const date_to_Ts = Math.floor(new Date(date_to).getTime() / 1000);
+	const allData = document.getElementById("all-data").checked;
+
+    let urlPartDates = "";
+	if(!allData)
+    {
+        urlPartDates = "&from=" + date_from_Ts + "&to=" + date_to_Ts;
+    }
+
+	clearCharts();
+
 	chart_accu.showLoading("Lade...");
 	chart_pinState.showLoading("Lade...");
 
 	var xhr = new XMLHttpRequest();
 	currentSensorIndex = 0;
-	xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
+	previous_response_length = 0;
+	xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex + urlPartDates, true);
 	xhr.onprogress = function ()
 	{
 		var chunk = xhr.responseText.slice(previous_response_length);
@@ -33,6 +152,13 @@ function bodyLoaded()
 					throw new Error("Not all properties found");
 				}
 				var x = obj.time * 1000;
+				// Check if timestamp is < 01.01.2000 --> skip this point
+				if (x < Date.UTC(2000, 0, 1))
+				{
+    				console.log("invalid timestamp (earlier than 01.01.2000), skip this element:", obj);
+					return false; // Return false to "continue" the "forEach" loop (.some(...))
+				}
+
 				chart_accu.series[currentSensorIndex].addPoint([x, obj.batP], false, false, false);
 				chart_pinState.series[currentSensorIndex].addPoint([x, obj.pin ? 1 : 0], false, false, false);
 				// Return false to "continue" the "forEach" loop (.some(...))
@@ -58,7 +184,7 @@ function bodyLoaded()
 		if (currentSensorIndex < NUM_SUPPORTED_SENSORS)
 		{
 			previous_response_length = 0;
-			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex, true);
+			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex + urlPartDates, true);
 			xhr.send();
 		}
 		else
@@ -78,6 +204,8 @@ function bodyLoaded()
 var style = getComputedStyle(document.body);
 
 /* ------------------------------------------------------------------------------------------------------ */
+/* ----- CHARTS ----------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------------ */
 
 Highcharts.setOptions(
 {
@@ -85,7 +213,8 @@ Highcharts.setOptions(
 	{
 		zoomType: 'xy',
 		backgroundColor: style.getPropertyValue('--background-color'),
-		height: 700
+		height: 700,
+		animation: false
 	},
 	title:
 	{
@@ -252,6 +381,7 @@ Highcharts.setOptions(
 });
 
 /* ------------------------------------------------------------------------------------------------------ */
+/* ----- Chart Accu ------------------------------------------------------------------------------------- */
 
 var chart_accu = new Highcharts.stockChart('chart-accu',
 {
@@ -298,6 +428,7 @@ var chart_accu = new Highcharts.stockChart('chart-accu',
 });
 
 /* ------------------------------------------------------------------------------------------------------ */
+/* ----- Chart Pin State -------------------------------------------------------------------------------- */
 
 var chart_pinState = new Highcharts.stockChart('chart-pinState',
 {
@@ -313,12 +444,22 @@ var chart_pinState = new Highcharts.stockChart('chart-pinState',
 	[{
 		name: 'Sensor #1',
 		data: [],
-		color: style.getPropertyValue('--sensor1-color')
+		color: style.getPropertyValue('--sensor1-color'),
+		step: 'left',
+		dataGrouping:
+		{
+        	enabled: false
+    	}
 	},
 	{
 		name: 'Sensor #2',
 		data: [],
-		color: style.getPropertyValue('--sensor2-color')
+		color: style.getPropertyValue('--sensor2-color'),
+		step: 'left',
+		dataGrouping:
+		{
+        	enabled: false
+    	}
 	}],
 	xAxis:
 	{
@@ -330,7 +471,7 @@ var chart_pinState = new Highcharts.stockChart('chart-pinState',
 		{
 			text: 'Tor Status'
 		},
-		labels:
+    	labels:
 		{
 			formatter: function () 
 			{

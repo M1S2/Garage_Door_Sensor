@@ -37,6 +37,8 @@ SensorModes sensor_modes[NUM_SUPPORTED_SENSORS];
 
 File serverGetDataMemoryFile;
 int8_t serverGetDataSensorIndex;
+time_t serverGetDataTimeFrom;
+time_t serverGetDataTimeTo;
 
 /**********************************************************************/
 
@@ -478,9 +480,19 @@ void initWebserverFiles()
   server.on("/get_data", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     serverGetDataSensorIndex = -1;
+    serverGetDataTimeFrom = 0;
+    serverGetDataTimeTo = UINT32_MAX;
     if(request->hasParam("sensorIndex"))
     {
       serverGetDataSensorIndex = request->getParam("sensorIndex")->value().toInt();
+    }
+    if(request->hasParam("from"))
+    {
+      serverGetDataTimeFrom = request->getParam("from")->value().toInt();
+    }
+    if(request->hasParam("to"))
+    {
+      serverGetDataTimeTo = request->getParam("to")->value().toInt();
     }
 
     if(serverGetDataSensorIndex < 0 || serverGetDataSensorIndex >= NUM_SUPPORTED_SENSORS)
@@ -518,6 +530,12 @@ void initWebserverFiles()
           else if(numReadBytes == 0)
           {
             break;
+          }
+
+          // skip the message if the timestamp is out of the requested range
+          if(sensorMessage.timestamp < serverGetDataTimeFrom || sensorMessage.timestamp > serverGetDataTimeTo)
+          {
+            continue;
           }
 
           // create a JSON document with the data and send it to the web page

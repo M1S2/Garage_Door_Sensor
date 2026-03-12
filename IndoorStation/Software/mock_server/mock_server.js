@@ -311,6 +311,8 @@ app.get("/get_data", (req, res) =>
         res.send("sensorIndex parameter not set");
         return;
     }
+    const from = parseInt(req.query.from) || 0;
+    const to = parseInt(req.query.to) || Number.MAX_SAFE_INTEGER;
 
     const messages = readSensorBinFile(sensorIndex);
     if(messages.length == 0)
@@ -332,6 +334,13 @@ app.get("/get_data", (req, res) =>
         }
 
         const m = messages[index];
+        
+        if(m.timestamp < from || m.timestamp > to)
+        {
+            index++;
+            return;
+        }
+
         const obj =
         {
             time: m.timestamp,
@@ -344,7 +353,7 @@ app.get("/get_data", (req, res) =>
         res.write(json);
         index++;
 
-    }, 10); // simulate chunked transfer like ESP
+    }, 2000 / messages.length); // simulate chunked transfer like ESP
 });
 
 // #########################################################################################
