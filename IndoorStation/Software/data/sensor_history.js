@@ -21,7 +21,7 @@ function restoreSettings()
 		// first call to this website -> set default values
 		// init the date controls to a range from (now - initialTimespanDays days) to (now)
 		const now = new Date();
-		const initialTimespanDays = 30;
+		const initialTimespanDays = 6*30;	// 6 months
 		const fromDate = new Date(now.getTime() - initialTimespanDays*86400*1000);
 		document.getElementById("date-from").value = fromDate.toISOString().slice(0,16);
 		document.getElementById("date-to").value = now.toISOString().slice(0,16);

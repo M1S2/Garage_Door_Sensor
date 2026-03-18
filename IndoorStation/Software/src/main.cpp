@@ -39,6 +39,8 @@ File serverGetDataMemoryFile;
 int8_t serverGetDataSensorIndex;
 time_t serverGetDataTimeFrom;
 time_t serverGetDataTimeTo;
+message_sensor_timestamped_t serverGetDataPendingMessage;
+bool serverGetDataHasPendingMessage = false;
 
 /**********************************************************************/
 
@@ -498,60 +500,75 @@ void initWebserverFiles()
     if(serverGetDataSensorIndex < 0 || serverGetDataSensorIndex >= NUM_SUPPORTED_SENSORS)
     {
       request->send(200, "text/plain", "sensorIndex parameter not set or out of range");
+      return;
     }
-    else
+
+    char strBuf[32];
+    sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverGetDataSensorIndex);
+    serverGetDataMemoryFile = LittleFS.open(strBuf, "r");
+    if(!serverGetDataMemoryFile)
     {
-      AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t 
+      request->send(200, "text/plain", "file open failed");
+      return;
+    }
+    serverGetDataHasPendingMessage = false;
+
+    AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t 
+    {
+      //Write up to "maxLen" bytes into "buffer" and return the amount written.
+      //Index equals the amount of bytes that have been already sent.
+      //You will be asked for more data until 0 is returned.
+      //Keep in mind that you can not delay or yield waiting for more data!
+
+      size_t jsonSize = 0;
+      StaticJsonDocument<75> json;
+      while(jsonSize < maxLen)
       {
-        //Write up to "maxLen" bytes into "buffer" and return the amount written.
-        //index equals the amount of bytes that have been already sent
-        //You will be asked for more data until 0 is returned
-        //Keep in mind that you can not delay or yield waiting for more data!
-
-        if(index == 0)
+        // Get message (pending or from file)
+        message_sensor_timestamped_t sensorMessage;
+        if(serverGetDataHasPendingMessage)
         {
-          char strBuf[32];
-          sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverGetDataSensorIndex);
-          serverGetDataMemoryFile = LittleFS.open(strBuf, "r");
+          sensorMessage = serverGetDataPendingMessage;
+          serverGetDataHasPendingMessage = false;
         }
-
-        StaticJsonDocument<75> jsonRoot;
-        uint8_t maxLenPerJsonMsg = jsonRoot.capacity();
-        size_t jsonSize = 0;
-        for(uint i = 0; i < (maxLen / maxLenPerJsonMsg) - 1; i++)
+        else
         {
-          message_sensor_timestamped_t sensorMessage;
           size_t numReadBytes = serverGetDataMemoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
-          if(numReadBytes == 0 && i == 0)
+          if(numReadBytes == 0)
           {
             serverGetDataMemoryFile.close();
-            return 0;
-          }
-          else if(numReadBytes == 0)
-          {
             break;
           }
-
-          // skip the message if the timestamp is out of the requested range
-          if(sensorMessage.timestamp < serverGetDataTimeFrom || sensorMessage.timestamp > serverGetDataTimeTo)
-          {
-            continue;
-          }
-
-          // create a JSON document with the data and send it to the web page
-          jsonRoot.clear();
-          jsonRoot["time"] = sensorMessage.timestamp;
-          jsonRoot["pin"] = sensorMessage.msg.pinState;
-          jsonRoot["batP"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
-          uint8_t buf[maxLenPerJsonMsg];
-          size_t jsonSizeMsg = serializeJson(jsonRoot, buf, maxLenPerJsonMsg);
-          memcpy(buffer + jsonSize, buf, jsonSizeMsg);
-          jsonSize += jsonSizeMsg;
         }
-        return jsonSize;
-      });
-      request->send(response);
-    }
+
+        // Skip the message if the timestamp is out of the requested range
+        if(sensorMessage.timestamp < serverGetDataTimeFrom || sensorMessage.timestamp > serverGetDataTimeTo)
+        {
+          continue;
+        }
+
+        // create a JSON document with the data
+        json.clear();
+        json["time"] = sensorMessage.timestamp;
+        json["pin"]  = sensorMessage.msg.pinState;
+        json["batP"] = battery_voltageToPercent(sensorMessage.msg.batteryVoltage_mV);
+
+        size_t needed = measureJson(json);
+
+        // Doesn't fit anymore -> remember for next chunk
+        if(jsonSize + needed >= maxLen)
+        {
+          serverGetDataPendingMessage = sensorMessage;
+          serverGetDataHasPendingMessage = true;
+          break;
+        }
+
+        // Write JSON to buffer
+        jsonSize += serializeJson(json, buffer + jsonSize, maxLen - jsonSize);
+      }
+      return jsonSize;
+    });
+    request->send(response);
   });
 
   // ----------------------------------
