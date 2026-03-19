@@ -42,7 +42,7 @@ function readSensorBinFile(sensorIndex)
         return messages;
     }
 
-    const buffer = fs.readFileSync(filename);
+    const buffer = fs.readFileSync(filepath);
 
     for(let offset = 0; offset < buffer.length; offset += BINFILE_RECORD_SIZE)
     {

@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Mock Server",
+            "type": "shell",
+            "command": "powershell",
+            "args":
+            [
+                "-Command",
+                "Start-Process node -ArgumentList '--inspect=9229', '${workspaceFolder}/mock_server/mock_server.js'"
+            ],
+            "isBackground": true,
+            "problemMatcher":
+            {
+                "owner": "mock-server",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern":
+                {
+                    "regexp": "^(.*)$",
+                    "message": 1
+                },
+                "background":
+                {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Mock Server is running"
+                }
+            }
+        },
+        {
+            "label": "Stop Mock Server",
+            "type": "shell",
+            "command": "powershell",
+            "args":
+            [
+                "-Command",
+                "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ''*mock_server.js*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

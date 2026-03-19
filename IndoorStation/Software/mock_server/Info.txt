@@ -4,16 +4,41 @@ Installation:
 2. CMD: cd <project_root>/IndoorStation/Software/mock_server
 3. CMD: npm ci
 
+
+There are 2 usage variants. Variant 2 offers more comfort.
+
+Usage VARIANT 1:
+================
+
 Start server with:
-==================
+------------------
 CMD: node mock_server.js
 
 Restart server (on changes at mock_server.js) with:
-===================================================
+---------------------------------------------------
 <Ctrl>+C
 CMD: node mock_server.js
 
 Access local websites:
-======================
+----------------------
 BROWSER: http://localhost/sensor_history.html
 The data is provided by the mock_server.js script from the mockDataSensor0.bin and mockDataSensor1.bin files
+
+
+Usage VARIANT 2:
+================
+
+Start the debugging in VS Code:
+- Change to the "Run and Debug" view (Ctrl+Shift+D)
+- Select "Website Development Debug Flow"
+- Click Run button
+
+The mock server is automatically opened and a browser appears. It is possible to debug into the .js files (website and mock server).
+When the debugging is ended, the mock server is closed.
+
+Whenever VS Code is opened, the platformio extension autogenerates the .vscode/launch.json file. This will delete the above debug option.
+There are two ways as work around:
+- Use GIT to restore the committed launch.json after VS Code is opened (needed every time).
+- Set the launch.json as read-only using the following in a GIT Bash: attrib +r ".vscode\launch.json" (only needed once)
+  The drawback here is that platformio can't autogenerate the file anymore, leading to some errors in the output of platformio.
+  Make the file writeable when needed with: attrib -r ".vscode\launch.json"
