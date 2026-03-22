@@ -121,6 +121,26 @@ nav a.active
 
 /* ----------------------------------------------------------------------------------------- */
 
+.range-options
+{
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+}
+.range-options label
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.range-options input[type="radio"]
+{
+	margin: 0;
+}
+
+/* ----------------------------------------------------------------------------------------- */
+
 .content 
 { 
 	padding: 20px;
@@ -128,7 +148,6 @@ nav a.active
 }
 .content-horizontal 
 { 
-	padding: 20px;
 	color: var(--text-color);
 	display: flex;
     align-items: center;
@@ -144,6 +163,7 @@ nav a.active
     gap: 10px;
     flex-wrap: wrap;
 }
+
 .timestamp 
 { 
 	color: var(--text-color); 
@@ -226,6 +246,12 @@ nav a.active
 	color: var(--disabled-text-color);
 }
 
+.submit_button.load_data_button
+{
+	margin-left: 0;
+	display: block;
+}
+
 /* ----------------------------------------------------------------------------------------- */
 
 .checkbox
@@ -244,6 +270,23 @@ nav a.active
 
 /* Disabled */
 .checkbox:disabled
+{
+    accent-color: var(--disabled-background);
+    cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------------------- */
+
+.radio
+{
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent1-color);
+}
+
+/* Disabled */
+.radio:disabled
 {
     accent-color: var(--disabled-background);
     cursor: not-allowed;

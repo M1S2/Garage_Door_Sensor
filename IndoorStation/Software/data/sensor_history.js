@@ -10,52 +10,82 @@ function bodyLoaded()
     setupEventHandlers();
 }
 
+function toDatetimeLocalValue(date)
+{
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 function restoreSettings()
 {
-    const all = sessionStorage.getItem("sensorHistory_all");
+	const range = sessionStorage.getItem("sensorHistory_range");
     const from = sessionStorage.getItem("sensorHistory_from");
     const to = sessionStorage.getItem("sensorHistory_to");
 
-    if(all === null && from === null && to === null)
+    if(range === null && from === null && to === null)
     {
 		// first call to this website -> set default values
-		// init the date controls to a range from (now - initialTimespanDays days) to (now)
-		const now = new Date();
-		const initialTimespanDays = 6*30;	// 6 months
-		const fromDate = new Date(now.getTime() - initialTimespanDays*86400*1000);
-		document.getElementById("date-from").value = fromDate.toISOString().slice(0,16);
-		document.getElementById("date-to").value = now.toISOString().slice(0,16);
-		document.getElementById("all-data").checked = false;
+		// default: last 6 months
+        const defaultRange = "6m";
+        const dateRadioInput = document.querySelector(`input[name="date-range"][value="${defaultRange}"]`);
+        if(dateRadioInput !== null)
+		{
+            dateRadioInput.checked = true;
+		}
+
+        const now = new Date();
+        const fromDate = new Date(now);
+        fromDate.setMonth(fromDate.getMonth() - 6);
+
+        document.getElementById("date-from").value = toDatetimeLocalValue(fromDate);
+        document.getElementById("date-to").value = toDatetimeLocalValue(now);
     }
     else
     {
-        if(all !== null)
-            document.getElementById("all-data").checked = (all === "true");
-
-        if(from)
+		if(range !== null)
+        {
+            const dateRadioInput = document.querySelector(`input[name="date-range"][value="${range}"]`);
+            if(dateRadioInput !== null)
+			{
+                dateRadioInput.checked = true;
+			}
+        }
+        if(from !== null)
+		{
             document.getElementById("date-from").value = from;
-
-        if(to)
+		}
+        if(to !== null)
+        {
             document.getElementById("date-to").value = to;
+        }
     }
-    toggleDateControlsVisibility();
+    updateDateControlsVisibility();
 	updateDayCount();
 }
 
 function saveSettings()
 {
-    sessionStorage.setItem("sensorHistory_all", document.getElementById("all-data").checked);
+	const selectedRange = document.querySelector('input[name="date-range"]:checked')?.value ?? "all";
+    sessionStorage.setItem("sensorHistory_range", selectedRange);
     sessionStorage.setItem("sensorHistory_from", document.getElementById("date-from").value);
     sessionStorage.setItem("sensorHistory_to", document.getElementById("date-to").value);
 }
 
 function setupEventHandlers()
 {
-    document.getElementById("all-data").addEventListener("change", function()
-    {
-        toggleDateControlsVisibility();
-        saveSettings();
-    });
+	document.querySelectorAll('input[name="date-range"]').forEach(radio =>
+	{
+		radio.addEventListener('change', function()
+		{
+			updateDateControlsVisibility();
+			saveSettings();
+		});
+	});
 
     document.getElementById("date-from").addEventListener("change", function()
 	{
@@ -69,18 +99,11 @@ function setupEventHandlers()
 	});
 }
 
-function toggleDateControlsVisibility()
+function updateDateControlsVisibility()
 {
-	const allDataChecked = document.getElementById("all-data").checked;
+	const selectedDateRange = document.querySelector('input[name="date-range"]:checked').value;
 	const dateControls = document.getElementById("date-controls");
-	if(allDataChecked)
-    {
-        dateControls.style.display = "none";
-    }
-    else
-    {
-        dateControls.style.display = "flex";
-    }
+	dateControls.style.display = (selectedDateRange === 'custom') ? 'flex' : 'none';
 }
 
 function updateDayCount()
@@ -101,27 +124,58 @@ function updateDayCount()
 function clearCharts()
 {
     chart_accu.series.forEach(s => s.setData([]));
+	chart_accu.xAxis[0].setExtremes(null, null);
+	chart_accu.redraw();
     chart_pinState.series.forEach(s => s.setData([]));
+	chart_pinState.xAxis[0].setExtremes(null, null);
+	chart_pinState.redraw();
+}
+
+function getFromToDates()
+{
+	const selectedDateRange = document.querySelector('input[name="date-range"]:checked').value;
+	let dateFrom = null;
+	let dateTo = null;
+	const now = new Date();
+
+	if (selectedDateRange === 'custom')
+	{
+		dateFrom = document.getElementById('date-from').value;
+		dateTo = document.getElementById('date-to').value;
+	}
+	else if (selectedDateRange !== 'all')
+	{
+		dateTo = now.toISOString();
+		const fromDate = new Date(now);
+
+		if (selectedDateRange === '12m') fromDate.setFullYear(fromDate.getFullYear() - 1);
+		if (selectedDateRange === '6m') fromDate.setMonth(fromDate.getMonth() - 6);
+		if (selectedDateRange === '3m') fromDate.setMonth(fromDate.getMonth() - 3);
+		if (selectedDateRange === '1m') fromDate.setMonth(fromDate.getMonth() - 1);
+
+		dateFrom = fromDate.toISOString();
+	}
+
+	return { dateFrom, dateTo };
 }
 
 var previous_response_length = 0;
 var currentSensorIndex = 0;
 function loadData()
 {
-	const date_from = document.getElementById("date-from").value;
-    const date_to = document.getElementById("date-to").value;
-    const date_from_Ts = Math.floor(new Date(date_from).getTime() / 1000);
-    const date_to_Ts = Math.floor(new Date(date_to).getTime() / 1000);
-	const allData = document.getElementById("all-data").checked;
-
-    let urlPartDates = "";
-	if(!allData)
-    {
+	let urlPartDates = "";
+	const dates = getFromToDates();
+	const selectedDateRange = document.querySelector('input[name="date-range"]:checked').value;
+	if(selectedDateRange !== 'all' && dates.dateFrom !== null && dates.dateTo !== null)
+	{
+		const date_from = dates.dateFrom;
+		const date_to = dates.dateTo;
+		const date_from_Ts = Math.floor(new Date(date_from).getTime() / 1000);
+		const date_to_Ts = Math.floor(new Date(date_to).getTime() / 1000);
         urlPartDates = "&from=" + date_from_Ts + "&to=" + date_to_Ts;
     }
 
 	clearCharts();
-
 	chart_accu.showLoading("Lade...");
 	chart_pinState.showLoading("Lade...");
 

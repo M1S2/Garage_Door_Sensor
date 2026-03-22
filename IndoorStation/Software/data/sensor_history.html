@@ -22,19 +22,27 @@
 		</nav>
 		
 		<div class="content">
-			<div class="content-horizontal">
-				<input type="checkbox" class="checkbox" id="all-data">
-				<div>Kompletter Zeitraum</div>
-				
-				<div id="date-controls">
+			<div class="range-options">
+				<label><input type="radio" class="radio" name="date-range" value="all" checked> Kompletter Zeitraum</label>
+				<label><input type="radio" class="radio" name="date-range" value="12m"> Letztes Jahr</label>
+				<label><input type="radio" class="radio" name="date-range" value="6m"> Letzte 6 Monate</label>
+				<label><input type="radio" class="radio" name="date-range" value="3m"> Letzte 3 Monate</label>
+				<label><input type="radio" class="radio" name="date-range" value="1m"> Letzter Monat</label>
+				<label><input type="radio" class="radio" name="date-range" value="custom"> Eigener Zeitraum</label>
+			</div>
+			
+			<div id="date-controls">
+				<div class="content-horizontal">
 					<div>Von:</div>
 					<input type="datetime-local" id="date-from">
+				</div>
+				<div class="content-horizontal">
 					<div>Bis:</div>
 					<input type="datetime-local" id="date-to">
-					<div id="day-count"></div>
 				</div>
-				<button class="submit_button" onclick="loadData()">Daten laden</button>
+				<div id="day-count"></div>
 			</div>
+			<button class="submit_button load_data_button" onclick="loadData()">Daten laden</button>
 
 			<div id="chart-accu" class="container"></div>
 			<br>
