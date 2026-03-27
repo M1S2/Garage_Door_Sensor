@@ -61,7 +61,7 @@
 					<iframe style="display:none" name="hidden-form"></iframe>
 					<br>
 					<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
-					<form action="/remove_data" method="get">
+					<form action="/remove_data" method="post" onsubmit="return confirm('Wirklich alle Daten löschen?');">
 						<input type="hidden" name="sensorIndex" value="0">
 						<input class="submit_button" type="submit" value="Daten löschen"/>
 					</form>
@@ -109,7 +109,7 @@
 					<iframe style="display:none" name="hidden-form"></iframe>
 					<br>
 					<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
-					<form action="/remove_data" method="get">
+					<form action="/remove_data" method="post" onsubmit="return confirm('Wirklich alle Daten löschen?');">
 						<input type="hidden" name="sensorIndex" value="1">
 						<input class="submit_button" type="submit" value="Daten löschen"/>
 					</form>

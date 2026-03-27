@@ -463,13 +463,13 @@ void initWebserverFiles()
   // ----------------------------------
 
   // Send a GET request to <ESP_IP>/remove_data
-  server.on("/remove_data", HTTP_GET, [] (AsyncWebServerRequest *request)
+  server.on("/remove_data", HTTP_POST, [] (AsyncWebServerRequest *request)
   {
     String inputMessage;
     int8_t sensorIndex = -1;
-    if(request->hasParam("sensorIndex"))
+    if(request->hasParam("sensorIndex", true))
     {
-      sensorIndex = request->getParam("sensorIndex")->value().toInt();
+      sensorIndex = request->getParam("sensorIndex", true)->value().toInt();
     }
     memory_removeSensorHistory(sensorIndex);
     updateLastSensorMessages();
