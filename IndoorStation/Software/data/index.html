@@ -22,43 +22,28 @@
 		
 		<div class="content">
 			<div class="cards">
-				<div class="card sensor1">
-					<h2>#1</h2>
-					<h4><i class="material-symbols-outlined">door_open</i> STATUS</h4>
-					<p class="reading">%SENSOR_STATE_1%</p>
-					<h4><i class="material-symbols-outlined">battery_horiz_050</i> BATTERIE</h4>
-					<p class="reading"><span>%SENSOR_PERCENTAGE_1%</span> %%</p>
-					<p class="reading"><span>%SENSOR_VOLTAGE_1%</span> V</p>
-					<br>
-					<p class="timestamp">%SENSOR_TIMESTAMP_1%</p>
-					<br>
-					<div class="error" id="error_sensor_1">
-						<p id="mac_sensor_1" hidden>%MAC_SENSOR_1%</p>
-						<p><i class="material-symbols-outlined">warning</i> MAC Adresse noch nicht gesetzt!</p>
-						<p><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> Jetzt konfigurieren</a></p>
+				<template id="sensor-card-template">
+					<div class="card sensorX">
+						<h2 id="sensor_X_title"></h2>
+						<h4><i class="material-symbols-outlined">door_open</i> STATUS</h4>
+						<p class="reading" id="sensor_X_status"></p>
+						<h4><i class="material-symbols-outlined">battery_horiz_050</i> BATTERIE</h4>
+						<p class="reading" id="sensor_X_percentage"></p>
+						<p class="reading" id="sensor_X_voltage"></p>
+						<br>
+						<p class="timestamp" id="sensor_X_timestamp"></p>
+						<br>
+						<div class="error" id="sensor_X_error">
+							<p id="sensor_X_mac" hidden></p>
+							<p><i class="material-symbols-outlined">warning</i> MAC Adresse noch nicht gesetzt!</p>
+							<p><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> Jetzt konfigurieren</a></p>
+						</div>
+						<br>
 					</div>
-					<br>
-				</div>
-				
-				<div class="card sensor2">
-					<h2>#2</h2>
-					<h4><i class="material-symbols-outlined">door_open</i> STATUS</h4>
-					<p class="reading">%SENSOR_STATE_2%</p>
-					<h4><i class="material-symbols-outlined">battery_horiz_050</i> BATTERIE</h4>
-					<p class="reading"><span>%SENSOR_PERCENTAGE_2%</span> %%</p>
-					<p class="reading"><span>%SENSOR_VOLTAGE_2%</span> V</p>
-					<br>
-					<p class="timestamp">%SENSOR_TIMESTAMP_2%</p>
-					<br>
-					<div class="error" id="error_sensor_2">
-						<p id="mac_sensor_2" hidden>%MAC_SENSOR_2%</p>
-						<p><i class="material-symbols-outlined">warning</i> MAC Adresse noch nicht gesetzt!</p>
-						<p><a href="/system_management.html"><i class="material-symbols-outlined">settings</i> Jetzt konfigurieren</a></p>
-					</div>
-					<br>
-				</div>
+				</template>
 			</div>
 		</div>
 	</body>
+	<script src="utils.js"></script>
 	<script src="index.js"></script>
 </html>

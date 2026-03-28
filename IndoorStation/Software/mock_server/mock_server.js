@@ -3,10 +3,30 @@ const fs = require("fs");
 const express = require("express");
 const app = express();
 
-let sensorMode1 = 0;    // Normal
-let sensorMode2 = 2;    // Laden
-let sensorMAC1 = "";
-let sensorMAC2 = "";
+// Middleware for parsing POST data
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+const NUM_SUPPORTED_SENSORS = 2;
+const SENSOR_PIN_STATE_OPEN = false;    // LOW
+const SENSOR_PIN_STATE_CLOSED = true;   // HIGH
+
+// SensorModes enum from structures.h
+const SENSOR_MODE_NORMAL = 0;           // All messages are received, everything is saved, LED on
+const SENSOR_MODE_DISABLED = 1;         // All messages are ignored, nothing is saved, LED off
+const SENSOR_MODE_CHARGING = 2;         // All messages are ignored, nothing is saved, LED in different color
+const SENSOR_MODE_ONLY_DISPLAY = 3;     // Messages are only displayed via the LED, nothing is saved
+const SENSOR_MODE_PAIRING = 4;          // Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved
+
+// Initialize arrays based on NUM_SUPPORTED_SENSORS
+let sensorModes = new Array(NUM_SUPPORTED_SENSORS).fill(SENSOR_MODE_NORMAL);
+let sensorMACs = [];
+for (let i = 0; i < NUM_SUPPORTED_SENSORS; i++) {
+    sensorMACs.push(`AA:BB:CC:DD:EE:${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`);
+}
+// Set specific modes for testing
+sensorModes[0] = SENSOR_MODE_CHARGING;
+sensorMACs[0] = "00:00:00:00:00:00";
 
 // Path to data folder
 const dataPath = path.join(__dirname, "..", "data");
@@ -176,61 +196,54 @@ function battery_voltageToPercent(batteryVoltage_mV, numberFractionalDigits = 1)
 // #########################################################################################
 // #########################################################################################
 
-app.get("/index.html", (req, res) =>
+app.get("/num_sensors", (req, res) =>
 {
-    const filePath = path.join(__dirname, "..", "data", "index.html");
-    fs.readFile(filePath, "utf8", (err, data) =>
-    {
-        if (err)
-        {
-            res.status(500).send("Error loading file");
-            return;
-        }
-
-        // Replace placeholders with dummy values (like in ESP code)
-        let processed = data
-            .replace("%SENSOR_STATE_1%", "Auf")
-            .replace("%SENSOR_STATE_2%", "Zu")
-            .replace("%SENSOR_VOLTAGE_1%", "4.0")
-            .replace("%SENSOR_VOLTAGE_2%", "3.88")
-            .replace("%SENSOR_PERCENTAGE_1%", "75.50")
-            .replace("%SENSOR_PERCENTAGE_2%", "60.00")
-            .replace("%SENSOR_TIMESTAMP_1%", "01.02.2025 10:11:12")
-            .replace("%SENSOR_TIMESTAMP_2%", "10.11.2012 02:03:04");
-
-        res.send(processed);
-    });
+    res.send(String(NUM_SUPPORTED_SENSORS));
 });
 
 // #########################################################################################
 
-app.get("/system_management.html", (req, res) =>
+app.get("/get_sensor_status", (req, res) =>
 {
-    const filePath = path.join(__dirname, "..", "data", "system_management.html");
-    fs.readFile(filePath, "utf8", (err, data) =>
+    const sensors = [];
+    for(let i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
-        if (err)
-        {
-            res.status(500).send("Error loading file");
-            return;
-        }
+        const messages = readSensorBinFile(i);
+        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
-        // Replace placeholders with dummy values (like in ESP code)
-        let processed = data
-            .replace("%INDOOR_STATION_MAC%", "01:02:03:04:05:06")
-            .replace("%MEMORY_USAGE%", "100000 von 1024000 Bytes belegt (9.77 %)")
-            .replace("%INDOOR_STATION_SW_VERSION%", "v0.0")
-            .replace("%SENSOR_SW_VERSION_1%", "v0.0")
-            .replace("%SENSOR_SW_VERSION_2%", "v0.0")
-            .replace("%NUM_MESSAGES_1%", getNumMessagesPerSensorFromBinFile(0))
-            .replace("%NUM_MESSAGES_2%", getNumMessagesPerSensorFromBinFile(1))
-            .replace("%SENSOR_MODE_1%", sensorMode1)
-            .replace("%SENSOR_MODE_2%", sensorMode2)
-            .replace("%MAC_SENSOR_1%", sensorMAC1)
-            .replace("%MAC_SENSOR_2%", sensorMAC2);
+        const voltage_mV = lastMessage ? lastMessage.batteryVoltage_mV : (3700 + i * 100);
+        const pinState = lastMessage ? lastMessage.pinState : (i === 0 ? SENSOR_PIN_STATE_OPEN : SENSOR_PIN_STATE_CLOSED);
+        const timestamp = lastMessage ? new Date(lastMessage.timestamp * 1000).toLocaleString('de-DE') : new Date().toLocaleString('de-DE');
+        const percentage = battery_voltageToPercent(voltage_mV);
 
-        res.send(processed);
-    });
+        const sensor = {
+            index: i+1,
+            mac: sensorMACs[i],
+            // Status data
+            state: pinState,
+            voltage_mV: voltage_mV,
+            percentage: percentage.toFixed(2),
+            timestamp: timestamp,
+            // Management data
+            mode: sensorModes[i],
+            numMessages: getNumMessagesPerSensorFromBinFile(i),
+            swVersion: "v0.0"
+        };
+        sensors.push(sensor);
+    }
+    res.json({ sensors });
+});
+
+// #########################################################################################
+
+app.get("/get_indoor_station_info", (req, res) =>
+{
+    const info = {
+        mac: "01:02:03:04:05:06",
+        swVersion: "v0.0",
+        memoryUsage: "100000 von 1024000 Bytes belegt (9.77 %)"
+    };
+    res.json(info);
 });
 
 // #########################################################################################
@@ -240,13 +253,9 @@ app.get("/set_sensor_mode", (req, res) =>
     const sensorIndex = parseInt(req.query.sensorIndex);
     const mode = parseInt(req.query.mode);
 
-    if(sensorIndex == 0)
+    if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
     {
-        sensorMode1 = mode;
-    }
-    else if(sensorIndex == 1)
-    {
-        sensorMode2 = mode;
+        sensorModes[sensorIndex] = mode;
     }
     res.redirect("/system_management.html");
 });
@@ -258,22 +267,15 @@ app.get("/set_mac_sensor", (req, res) =>
     const sensorIndex = parseInt(req.query.sensorIndex);
     const mac = req.query.mac;
 
-    if(sensorIndex == 0)
-    {
-        sensorMAC1 = mac;
-    }
-    else if(sensorIndex == 1)
-    {
-        sensorMAC2 = mac;
-    }
+    sensorMACs[sensorIndex] = mac;
     res.redirect("/system_management.html");
 });
 
 // #########################################################################################
 
-app.get("/remove_data", (req, res) => 
+app.post("/remove_data", (req, res) => 
 {
-    const sensorIndex = parseInt(req.query.sensorIndex);
+    const sensorIndex = parseInt(req.body.sensorIndex);
     res.redirect("/system_management.html");
 });
 
@@ -367,4 +369,4 @@ app.listen(80, () =>
 });
 
 // Uncomment this line to generate files containing the mock data
-//generateDummySensorBinFiles(2, 100, 4);
+//generateDummySensorBinFiles(NUM_SUPPORTED_SENSORS, 100, 4);

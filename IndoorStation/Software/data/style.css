@@ -168,35 +168,33 @@ nav a.active
 { 
 	color: var(--text-color); 
 }
+
+/* ----------------------------------------------------------------------------------------- */
+
 .card 
 { 
 	background-color: var(--background-color); 
 	box-shadow: 2px 2px 12px 1px var(--box-shadow-color);
+	color: var(--sensor-color, var(--text-color));
 }
 .cards 
 { 
-	max-width: 800px; 
+	max-width: 90%; 
 	margin: 0 auto; 
 	display: grid; 
 	grid-gap: 2rem; 
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
 }
 .reading 
 { 
 	font-size: 2.8rem; 
 }
-.card.sensor1
-{ 
-	color: var(--sensor1-color);
-}
-.card.sensor2
-{ 
-	color: var(--sensor2-color);
-}
 .card.general
 { 
 	color: var(--text-color);
 }
+
+/* ----------------------------------------------------------------------------------------- */
 
 .error
 {
@@ -349,6 +347,12 @@ select
 	--accent-text-color: #F7F8F8;
 	--sensor1-color: #FD7E14;
 	--sensor2-color: #3690F7;
+	--sensor3-color: #28A745;
+	--sensor4-color: #DC3545;
+	--sensor5-color: #FFC107;
+	--sensor6-color: #17A2B8;
+	--sensor7-color: #E83E8C;
+	--sensor8-color: #6F42C1;
 	--menu-background-color: #121416;	/*rgba*/ 
 	--menu-text-color: #F7F8F8;	
 	--mouse-over-background: #CCCCCC;
@@ -372,7 +376,13 @@ select
 		--accent1-color: #228b22;
 		--accent-text-color: #F7F8F8;
 		--sensor1-color: #FD7E14;
-		--sensor2-color: #3690F7;		
+		--sensor2-color: #3690F7;
+		--sensor3-color: #28A745;
+		--sensor4-color: #DC3545;
+		--sensor5-color: #FFC107;
+		--sensor6-color: #17A2B8;
+		--sensor7-color: #E83E8C;
+		--sensor8-color: #6F42C1;		
 		--menu-background-color: #D7D8D8;	/*rgba*/ 
 		--menu-text-color: #212a2e;		
 		--mouse-over-background: #CCCCCC;

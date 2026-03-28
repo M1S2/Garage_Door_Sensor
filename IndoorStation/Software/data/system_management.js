@@ -1,15 +1,86 @@
 function bodyLoaded()
 {
-	// Disable the download data buttons if the number of messages equals 0
+	fetch('/get_sensor_status')
+	.then(response => response.json())
+	.then(data =>
+	{
+		const cardsContainer = document.querySelector('.cards');
+		const template = document.getElementById('sensor-management-card-template');
+		
+		// Find the first static card (System Info) to insert sensor cards before it
+		const firstStaticCard = cardsContainer.querySelector('.card.general');
+		
+		data.sensors.forEach(sensor =>
+		{
+			const templateClone = template.content.cloneNode(true);
+			
+			// Replace X with sensor.index
+			const card = templateClone.querySelector('.card');
+			card.classList.remove('sensorX');
+			card.classList.add(`sensor${sensor.index}`);
+			
+			// Set the sensor color via CSS custom property
+			card.style.setProperty('--sensor-color', getSensorColor(sensor.index));
+			
+			// Update all element IDs from sensorX_* to sensorN_*
+			const titleElement = templateClone.querySelector('#sensor_X_title');
+			const modeSelectElement = templateClone.querySelector('#sensor_X_mode');
+			const modeSelectedElement = templateClone.querySelector('#sensor_X_mode_selectedIndex');
+			const numMsgElement = templateClone.querySelector('#sensor_X_num_msg');
+			const swVersionElement = templateClone.querySelector('#sensor_X_sw_version');
+			const macInputElement = templateClone.querySelector('#sensor_X_mac');
+			const downloadButtonElement = templateClone.querySelector('#submit_download_X');			
+			titleElement.id = `sensor_${sensor.index}_title`;
+			modeSelectElement.id = `sensor_mode_${sensor.index}`;
+			modeSelectedElement.id = `sensor_mode_selectedIndex_${sensor.index}`;
+			numMsgElement.id = `num_msg_${sensor.index}`;
+			swVersionElement.id = `sensor_${sensor.index}_sw_version`;
+			macInputElement.id = `mac_sensor_${sensor.index}`;
+			downloadButtonElement.id = `submit_download_${sensor.index}`;
+			
+			// Update form action sensorIndex
+			const modeForm = templateClone.querySelector('form[action="/set_sensor_mode"]');
+			modeForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			
+			const macForm = templateClone.querySelector('form[action="/set_mac_sensor"]');
+			macForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			
+			const removeForm = templateClone.querySelector('form[action="/remove_data"]');
+			removeForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			
+			const downloadForm = templateClone.querySelector('form[action="/download_data"]');
+			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			
+			// Fill content
+			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index} - KONFIGURATION`;
+			modeSelectedElement.value = sensor.mode;
+			modeSelectElement.value = sensor.mode;
+			numMsgElement.textContent = sensor.numMessages;
+			swVersionElement.textContent = sensor.swVersion;
+			macInputElement.value = sensor.mac;
+			
+			// Disable download button if no messages
+			downloadButtonElement.disabled = sensor.numMessages == 0;
+			
+			// Add MAC formatting event listener
+			macInputElement.addEventListener('keyup', format_macs, false);
+			
+			// Insert before the first static card (System Info)
+			cardsContainer.insertBefore(templateClone, firstStaticCard);
+		});
+	})
+	.catch(error => console.error('Error loading sensor management data:', error));
 
-	var isNumMsg1Zero = document.getElementById("num_msg_1").innerText == "0";
-	document.getElementById("submit_download_1").disabled = isNumMsg1Zero;
-
-	var isNumMsg2Zero = document.getElementById("num_msg_2").innerText == "0";
-	document.getElementById("submit_download_2").disabled = isNumMsg2Zero;
-
-	document.getElementById("sensor_mode_1").value = document.getElementById("sensor_mode_selectedIndex_1").value;
-	document.getElementById("sensor_mode_2").value = document.getElementById("sensor_mode_selectedIndex_2").value;
+	// Load indoor station info
+	fetch('/get_indoor_station_info')
+	.then(response => response.json())
+	.then(data =>
+	{
+		document.getElementById("indoor_station_mac").textContent = data.mac;
+		document.getElementById("indoor_station_sw_version").textContent = data.swVersion;
+		document.getElementById("indoor_station_memory_usage").textContent = data.memoryUsage;
+	})
+	.catch(error => console.error('Error loading indoor station info:', error));
 
 	document.getElementById("webpage_version").innerText = window.GARAGE_DOOR_INDOOR_STATION_WEBPAGE_VERSION;
 }
@@ -19,9 +90,6 @@ function submitMacMessage()
     alert("Neue MAC Adresse gespeichert.");
     setTimeout(function(){ document.location.reload(false); }, 500);   
 }
-
-document.getElementById("mac_sensor_1").addEventListener('keyup', format_macs, false);
-document.getElementById("mac_sensor_2").addEventListener('keyup', format_macs, false);
 
 function format_macs(e)
 { 

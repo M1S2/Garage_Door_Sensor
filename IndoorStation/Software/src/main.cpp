@@ -179,113 +179,6 @@ void btnHandler_pairing_click(Button2& btn)
 
 /**********************************************************************/
 
-String processor(const String& var)
-{
-    // ----- index.html -----------------
-    if(var.startsWith("SENSOR_STATE_") || var.startsWith("SENSOR_VOLTAGE_") || var.startsWith("SENSOR_PERCENTAGE_") || var.startsWith("SENSOR_TIMESTAMP_"))
-    {
-        String sensorIndexStr = String(var);
-        sensorIndexStr.replace("SENSOR_STATE_","");
-        sensorIndexStr.replace("SENSOR_VOLTAGE_","");
-        sensorIndexStr.replace("SENSOR_PERCENTAGE_","");
-        sensorIndexStr.replace("SENSOR_TIMESTAMP_","");
-
-        long sensorIndex = sensorIndexStr.toInt() - 1;
-        if(sensorIndex < 0 || sensorIndex >= NUM_SUPPORTED_SENSORS)
-        {
-            return "Sensor index out of range!";
-        }
-        else if(sensor_messages_latest[sensorIndex].timestamp == -1)
-        {
-            return "?";
-        }
-        else
-        {
-            if(var.startsWith("SENSOR_STATE_"))
-            {
-                return sensor_messages_latest[sensorIndex].msg.pinState == SENSOR_PIN_STATE_OPEN ? "Auf" : "Zu";
-            }
-            else if(var.startsWith("SENSOR_VOLTAGE_"))
-            {
-                return String(sensor_messages_latest[sensorIndex].msg.batteryVoltage_mV / 1000.0f, 2);
-            }
-            else if(var.startsWith("SENSOR_PERCENTAGE_"))
-            {
-                return String(battery_voltageToPercent(sensor_messages_latest[sensorIndex].msg.batteryVoltage_mV, 2), 2);
-            }
-            else if(var.startsWith("SENSOR_TIMESTAMP_"))
-            {
-                time_t time = sensor_messages_latest[sensorIndex].timestamp;
-                tm tm;                                                              // the structure tm holds time information in a more convenient way
-                localtime_r(&time, &tm);   // update the structure tm with the current time
-                
-                char time_buf[256];
-                strftime(time_buf, sizeof (time_buf), "%d.%m.%Y %H:%M:%S", &tm);
-                return String(time_buf);
-            }
-        }
-    }
-    // ----- system_management.html -----
-    else if(var == "INDOOR_STATION_MAC")
-    {
-        return WiFi.macAddress();
-    }
-    else if(var == "MEMORY_USAGE")
-    {
-        return memory_getMemoryUsageString();
-    }
-    else if(var == "INDOOR_STATION_SW_VERSION")
-    {
-        return GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
-    }
-    else if(var.startsWith("MAC_SENSOR_") || var.startsWith("NUM_MESSAGES_") || var.startsWith("SENSOR_SW_VERSION_") || var.startsWith("SENSOR_MODE_"))
-    {
-        String sensorIndexStr = String(var);
-        sensorIndexStr.replace("MAC_SENSOR_","");
-        sensorIndexStr.replace("NUM_MESSAGES_","");
-        sensorIndexStr.replace("SENSOR_SW_VERSION_","");
-        sensorIndexStr.replace("SENSOR_MODE_","");
-        long sensorIndex = sensorIndexStr.toInt() - 1;
-        if(sensorIndex < 0 || sensorIndex >= NUM_SUPPORTED_SENSORS)
-        {
-            return "Sensor index out of range!";
-        }
-        else
-        {
-            if(var.startsWith("MAC_SENSOR_"))
-            {
-                char macAddrStr[18];
-                sprintf(macAddrStr, "%02X:%02X:%02X:%02X:%02X:%02X", sensor_macs[sensorIndex][0], sensor_macs[sensorIndex][1], sensor_macs[sensorIndex][2], sensor_macs[sensorIndex][3], sensor_macs[sensorIndex][4], sensor_macs[sensorIndex][5]);
-                return macAddrStr;
-            }
-            else if(var.startsWith("NUM_MESSAGES_"))
-            {
-                return String(memory_getNumberSensorMessages(sensorIndex));
-            }
-            else if(var.startsWith("SENSOR_SW_VERSION_"))
-            {
-                if(sensor_messages_latest[sensorIndex].timestamp == -1)
-                {
-                    return "?";
-                }
-                else
-                {
-                    uint8_t major = (sensor_messages_latest[sensorIndex].msg.sensor_sw_version & 0xF0) >> 4;
-                    uint8_t minor = (sensor_messages_latest[sensorIndex].msg.sensor_sw_version & 0x0F);
-                    return "v" + String(major) + "." + String(minor);
-                }
-            }
-            else if(var.startsWith("SENSOR_MODE_"))
-            {
-              return String(sensor_modes[sensorIndex]);
-            }
-        }
-    }
-    return String();
-}
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
   if (!index)
@@ -337,23 +230,23 @@ void initWebserverFiles()
    // Route for root index.html
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/index.html", "text/html", false, processor); 
+    request->send(LittleFS, "/index.html", "text/html", false); 
   });
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/index.html", "text/html", false, processor); 
+    request->send(LittleFS, "/index.html", "text/html", false); 
   });
 
   // Route for root sensor_history.html
   server.on("/sensor_history.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/sensor_history.html", "text/html", false, processor); 
+    request->send(LittleFS, "/sensor_history.html", "text/html", false); 
   });
 
   // Route for root system_management.html
   server.on("/system_management.html", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/system_management.html", "text/html", false, processor); 
+    request->send(LittleFS, "/system_management.html", "text/html", false); 
   });
 
   // Route for root style.css
@@ -398,8 +291,79 @@ void initWebserverFiles()
   });
 
   // ----------------------------------
-  
-  // Send a GET request to <ESP_IP>/set_mac_sensor
+
+  server.on("/num_sensors", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+	  request->send(200, "text/plain", String(NUM_SUPPORTED_SENSORS));
+  });
+
+  // ----------------------------------
+
+  server.on("/get_sensor_status", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    DynamicJsonDocument doc(1024);
+    JsonArray sensors = doc.createNestedArray("sensors");
+    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+      JsonObject sensor = sensors.createNestedObject();
+      sensor["index"] = i+1;
+      if(sensor_messages_latest[i].timestamp != -1)
+      {
+        sensor["state"] = sensor_messages_latest[i].msg.pinState;
+        sensor["voltage_mV"] = sensor_messages_latest[i].msg.batteryVoltage_mV;
+        sensor["percentage"] = battery_voltageToPercent(sensor_messages_latest[i].msg.batteryVoltage_mV);
+        time_t time = sensor_messages_latest[i].timestamp;
+        tm tm_struct;
+        localtime_r(&time, &tm_struct);
+        char buffer[20];
+        strftime(buffer, sizeof(buffer), "%d.%m.%Y %H:%M", &tm_struct);
+        sensor["timestamp"] = buffer;
+      }
+      else
+      {
+        sensor["state"] = false;
+        sensor["voltage_mV"] = -1;
+        sensor["percentage"] = 0;
+        sensor["timestamp"] = "?";
+      }
+      char macStr[18];
+      sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", sensor_macs[i][0], sensor_macs[i][1], sensor_macs[i][2], sensor_macs[i][3], sensor_macs[i][4], sensor_macs[i][5]);
+      sensor["mac"] = macStr;
+      
+      // Add management data
+      sensor["mode"] = sensor_modes[i];
+      sensor["numMessages"] = memory_getNumberSensorMessages(i);
+      
+      if(sensor_messages_latest[i].timestamp == -1)
+      {
+        sensor["swVersion"] = "?";
+      }
+      else
+      {
+        uint8_t major = (sensor_messages_latest[i].msg.sensor_sw_version & 0xF0) >> 4;
+        uint8_t minor = (sensor_messages_latest[i].msg.sensor_sw_version & 0x0F);
+        sensor["swVersion"] = "v" + String(major) + "." + String(minor);
+      }
+    }
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
+
+  // ----------------------------------
+
+  server.on("/get_indoor_station_info", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    DynamicJsonDocument doc(256);
+    doc["mac"] = WiFi.macAddress();
+    doc["swVersion"] = GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
+    doc["memoryUsage"] = memory_getMemoryUsageString();
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
+
+  // ----------------------------------
   server.on("/set_mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     String inputMessage;

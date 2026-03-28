@@ -1,7 +1,25 @@
-const NUM_SUPPORTED_SENSORS = 2		// The number of supported sensors. This must match the #define NUM_SUPPORTED_SENSORS
+let Num_Sensors = 0;	// Will be loaded from /num_sensors endpoint
+var chart_accu;
+var chart_pinState;
 
-function bodyLoaded()
+async function bodyLoaded()
 {
+	// Load the number of supported sensors from the backend
+	try
+	{
+		const response = await fetch('/num_sensors');
+		const data = await response.json();
+		Num_Sensors = data;
+	}
+	catch(error)
+	{
+		console.error("Error loading num_sensors:", error);
+		Num_Sensors = 2;	// Fallback to default
+	}
+
+	// Initialize charts with the correct number of sensors
+	initializeCharts();
+
 	clearCharts();
 	chart_accu.showLoading("Neue Daten über den Button oben laden...");
 	chart_pinState.showLoading("Neue Daten über den Button oben laden...");
@@ -176,6 +194,13 @@ function loadData()
     }
 
 	clearCharts();
+	if(Num_Sensors == 0)
+	{
+		chart_accu.showLoading("Keine Sensoren gefunden.");
+		chart_pinState.showLoading("Keine Sensoren gefunden.");
+		return;
+	}
+	
 	chart_accu.showLoading("Lade...");
 	chart_pinState.showLoading("Lade...");
 
@@ -235,7 +260,7 @@ function loadData()
 	{
 		console.log("completed: sensor #" + currentSensorIndex);
 		currentSensorIndex++;
-		if (currentSensorIndex < NUM_SUPPORTED_SENSORS)
+		if (currentSensorIndex < Num_Sensors)
 		{
 			previous_response_length = 0;
 			xhr.open("GET", "/get_data?sensorIndex=" + currentSensorIndex + urlPartDates, true);
@@ -435,102 +460,108 @@ Highcharts.setOptions(
 });
 
 /* ------------------------------------------------------------------------------------------------------ */
-/* ----- Chart Accu ------------------------------------------------------------------------------------- */
+/* ----- Chart Creation Functions ----------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------------ */
 
-var chart_accu = new Highcharts.stockChart('chart-accu',
+function createAccuSeries()
 {
-	title:
+	const series = [];
+	for (let i = 1; i <= Num_Sensors; i++)
 	{
-		text: 'Akku Ladezustand'
-	},
-	legend:
+		series.push({
+			name: `Sensor #${i}`,
+			data: [],
+			color: style.getPropertyValue(`--sensor${i}-color`)
+		});
+	}
+	return series;
+}
+
+function createPinStateSeries()
+{
+	const series = [];
+	for (let i = 1; i <= Num_Sensors; i++)
 	{
-		enabled: true
-	},
-	series:
-	[{
-		name: 'Sensor #1',
-		data: [],
-		color: style.getPropertyValue('--sensor1-color')
-	},
-	{
-		name: 'Sensor #2',
-		data: [],
-		color: style.getPropertyValue('--sensor2-color')
-	}],
-	plotOptions:
-	{
-		series:
-		{
-			tooltip:
+		series.push({
+			name: `Sensor #${i}`,
+			data: [],
+			color: style.getPropertyValue(`--sensor${i}-color`),
+			step: 'left',
+			dataGrouping:
 			{
-				pointFormat: '<b>{point.y:.1f}%</b>'
+				enabled: false
 			}
-		}
-	},
-	xAxis:
-	{
-		ordinal: false
-	},
-	yAxis:
+		});
+	}
+	return series;
+}
+
+function initializeCharts()
+{
+	// Chart Accu
+	chart_accu = new Highcharts.stockChart('chart-accu',
 	{
 		title:
 		{
-			text: 'Ladezustand (%)'
+			text: 'Akku Ladezustand'
+		},
+		legend:
+		{
+			enabled: true
+		},
+		series: createAccuSeries(),
+		plotOptions:
+		{
+			series:
+			{
+				tooltip:
+				{
+					pointFormat: '<b>{point.y:.1f}%</b>'
+				}
+			}
+		},
+		xAxis:
+		{
+			ordinal: false
+		},
+		yAxis:
+		{
+			title:
+			{
+				text: 'Ladezustand (%)'
+			}
 		}
-	}
-});
+	});
 
-/* ------------------------------------------------------------------------------------------------------ */
-/* ----- Chart Pin State -------------------------------------------------------------------------------- */
-
-var chart_pinState = new Highcharts.stockChart('chart-pinState',
-{
-	title:
-	{
-		text: 'Tor Status'
-	},
-	legend:
-	{
-		enabled: true
-	},
-	series:
-	[{
-		name: 'Sensor #1',
-		data: [],
-		color: style.getPropertyValue('--sensor1-color'),
-		step: 'left',
-		dataGrouping:
-		{
-        	enabled: false
-    	}
-	},
-	{
-		name: 'Sensor #2',
-		data: [],
-		color: style.getPropertyValue('--sensor2-color'),
-		step: 'left',
-		dataGrouping:
-		{
-        	enabled: false
-    	}
-	}],
-	xAxis:
-	{
-		ordinal: false
-	},
-	yAxis:
+	// Chart Pin State
+	chart_pinState = new Highcharts.stockChart('chart-pinState',
 	{
 		title:
 		{
 			text: 'Tor Status'
 		},
-    	labels:
+		legend:
 		{
-			formatter: function () 
+			enabled: true
+		},
+		series: createPinStateSeries(),
+		xAxis:
+		{
+			ordinal: false
+		},
+		yAxis:
+		{
+			title:
 			{
-				return (this.value == 0 ? 'Auf' : (this.value == 1 ? 'Zu' : ''));
+				text: 'Tor Status'
+			},
+	    	labels:
+			{
+				formatter: function () 
+				{
+					return (this.value == 0 ? 'Auf' : (this.value == 1 ? 'Zu' : ''));
+				}
 			}
 		}
-	}
-});
+	});
+}
