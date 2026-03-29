@@ -255,10 +255,10 @@ void initWebserverFiles()
     request->send(LittleFS, "/style.css", "text/css"); 
   });
 
-  // Route for root common.js
-  server.on("/common.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  // Route for root utils.js
+  server.on("/utils.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(LittleFS, "/common.js", "text/javascript"); 
+    request->send(LittleFS, "/utils.js", "text/javascript"); 
   });
 
   // Route for root index.js

@@ -218,6 +218,40 @@ nav a.active
 }
 
 /* ----------------------------------------------------------------------------------------- */
+/* Sensor mode indicators for index page */
+
+.sensor-mode-indicator
+{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	font-size: 2.0rem;
+}
+
+.sensor-mode-content
+{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+}
+
+.sensor-mode-content .material-symbols-outlined
+{
+	font-size: 3.0rem;
+}
+
+.sensor-mode-content .mode-text
+{
+	font-size: 1.2rem;
+	font-weight: bold;
+	text-align: center;
+}
+
+/* ----------------------------------------------------------------------------------------- */
 
 .submit_button
 {
