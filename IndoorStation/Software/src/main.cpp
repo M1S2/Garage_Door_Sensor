@@ -364,6 +364,22 @@ void initWebserverFiles()
   });
 
   // ----------------------------------
+
+  server.on("/get_system_time", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    time_t now;
+    time(&now);
+    tm tm_struct;
+    localtime_r(&now, &tm_struct);
+
+    char timeBuf[32];
+    strftime(timeBuf, sizeof(timeBuf), "%d.%m.%Y %H:%M:%S", &tm_struct);
+
+    request->send(200, "text/plain", String(timeBuf));
+  });
+
+  // ----------------------------------
+
   server.on("/set_mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
   {
     String inputMessage;

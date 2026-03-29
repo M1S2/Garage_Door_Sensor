@@ -248,6 +248,14 @@ app.get("/get_indoor_station_info", (req, res) =>
 
 // #########################################################################################
 
+app.get("/get_system_time", (req, res) =>
+{
+    const systemTime = new Date().toLocaleString('de-DE');
+    res.type("text/plain").send(systemTime);
+});
+
+// #########################################################################################
+
 app.get("/set_sensor_mode", (req, res) => 
 {
     const sensorIndex = parseInt(req.query.sensorIndex);

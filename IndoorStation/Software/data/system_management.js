@@ -82,7 +82,22 @@ function bodyLoaded()
 	})
 	.catch(error => console.error('Error loading indoor station info:', error));
 
+	updateSystemTime();
+	setInterval(updateSystemTime, 1000);
+
 	document.getElementById("webpage_version").innerText = window.GARAGE_DOOR_INDOOR_STATION_WEBPAGE_VERSION;
+}
+
+// Load and update system time immediately and periodically
+function updateSystemTime()
+{
+	fetch('/get_system_time')
+	.then(response => response.text())
+	.then(timeString =>
+	{
+		document.getElementById("indoor_station_time").textContent = timeString;
+	})
+	.catch(error => console.error('Error loading system time:', error));
 }
 
 function submitMacMessage()
