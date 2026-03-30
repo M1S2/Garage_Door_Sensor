@@ -1,11 +1,15 @@
 const path = require("path");
 const fs = require("fs");
 const express = require("express");
+const multer = require("multer");
 const app = express();
 
 // Middleware for parsing POST data
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Configure multer for file uploads (memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
 
 const NUM_SUPPORTED_SENSORS = 2;
 const SENSOR_PIN_STATE_OPEN = false;    // LOW
@@ -284,6 +288,57 @@ app.get("/set_mac_sensor", (req, res) =>
 app.post("/remove_data", (req, res) => 
 {
     const sensorIndex = parseInt(req.body.sensorIndex);
+    
+    if(sensorIndex < 0)
+    {
+        // Remove all sensor history files
+        for(let i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+        {
+            const filename = FILENAME_HISTORY_SENSOR_FORMAT.replace("%d", i);
+            const filepath = path.join(__dirname, filename);
+            if(fs.existsSync(filepath))
+            {
+                fs.unlinkSync(filepath);    // delete the file
+            }
+        }
+    }
+    else if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+    {
+        // Remove specific sensor history file
+        const filename = FILENAME_HISTORY_SENSOR_FORMAT.replace("%d", sensorIndex);
+        const filepath = path.join(__dirname, filename);
+        if(fs.existsSync(filepath))
+        {
+            fs.unlinkSync(filepath);        // delete the file
+        }
+    }
+    
+    res.redirect("/system_management.html");
+});
+
+// #########################################################################################
+
+app.post("/upload_data", upload.single('data'), (req, res) =>
+{
+    const sensorIndex = parseInt(req.body.sensorIndex);
+    
+    if(isNaN(sensorIndex) || sensorIndex < 0 || sensorIndex >= NUM_SUPPORTED_SENSORS)
+    {
+        res.status(400).send("Upload failed: Invalid sensorIndex or file could not be written!");
+        return;
+    }
+
+    if(!req.file)
+    {
+        res.status(400).send("Upload failed: Invalid sensorIndex or file could not be written!");
+        return;
+    }
+
+    const buffer = req.file.buffer;
+    const filename = FILENAME_HISTORY_SENSOR_FORMAT.replace("%d", sensorIndex);
+    const filepath = path.join(__dirname, filename);
+    
+    fs.writeFileSync(filepath, buffer);
     res.redirect("/system_management.html");
 });
 

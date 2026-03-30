@@ -22,6 +22,7 @@
 
 		<div class="content">
 			<div class="cards">
+				<!----------------------- SENSOR MANAGEMENT CARD TEMPLATE --------------------------------------------------------------------------------------->
 				<template id="sensor-management-card-template">
 					<div class="card sensorX">
 						<h2 id="sensor_X_title"></h2>
@@ -69,26 +70,15 @@
 							<input type="hidden" name="sensorIndex" value="X">
 							<input id="submit_download_X" class="submit_button" type="submit" value="Daten herunterladen" title="Sensor Daten vom ESP8266 herunterladen"/>
 						</form>
+						<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
+						<form action="/upload_data" method="POST" enctype="multipart/form-data">
+							<input type="hidden" name="sensorIndex" value="X">
+							<button class="submit_button" type="button" title="Sensor Daten auf den ESP8266 hochladen">Daten hochladen</button>
+							<input type="file" id="file_input_X" name="data" accept=".bin" style="display:none" onchange="this.form.submit()"/>
+						</form>
 					</div>
 				</template>
 
-				<!----------------------- UPLOAD --------------------------------------------------------------------------------------->
-				<div class="card general">
-					<h2><i class="material-symbols-outlined">upload</i> HOCHLADEN</h2>
-					<p>Für das hochladen folgende Dateinamen verwenden:</p>
-					<p>dataSensor0.bin: Daten für Sensor 1<br>
-					dataSensor1.bin: Daten für Sensor 2<br>
-					...<br>
-					Alle anderen Dateien werden ignoriert.</p>
-					<br>
-
-					<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
-					<form action="/upload_data" method="POST" enctype="multipart/form-data">
-						<input type="file" name="data" accept=".bin"/>
-						<br>
-						<input class="submit_button" type="submit" value="Daten hochladen" title="Sensor Daten auf den ESP8266 hochladen">
-					</form>
-				</div>
 				<!----------------------- SYSTEM INFO --------------------------------------------------------------------------------------->
 				<div class="card general">
 					<h2><i class="material-symbols-outlined">info</i> SYSTEM INFO</h2>

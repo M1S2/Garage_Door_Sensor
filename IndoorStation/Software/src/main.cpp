@@ -42,6 +42,8 @@ time_t serverGetDataTimeTo;
 message_sensor_timestamped_t serverGetDataPendingMessage;
 bool serverGetDataHasPendingMessage = false;
 
+int8_t serverUploadDataSensorIndex = -1;
+
 /**********************************************************************/
 
 void updateLeds_sensorStatus()
@@ -183,43 +185,34 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
 {
   if (!index)
   {
-    // Set this variable to true, if the given filename is ok to be uploaded.
-    // At the moment only the sensor history data files are allowed for the number of supported sensors.
-    bool fileAllowedToUpload = false;
-    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    // Only allow upload if sensorIndex is valid
+    if(serverUploadDataSensorIndex >= 0 && serverUploadDataSensorIndex < NUM_SUPPORTED_SENSORS)
     {
+      // open the file with the correct format (ignoring the uploaded filename) on first call and store the file handle in the request object
       char strBuf[32];
-      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, i);
-      if("/" + filename == strBuf)
-      {
-        fileAllowedToUpload = true;
-      }
-    }
-
-    if(fileAllowedToUpload)
-    {
-      // open the file (by the requested filename) on first call and store the file handle in the request object
-      request->_tempFile = LittleFS.open("/" + filename, "w");
+      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverUploadDataSensorIndex);
+      request->_tempFile = LittleFS.open(strBuf, "w");
     }
   }
 
-  if (len && request->_tempFile)    // last part is to check that file was opened
+  if (len > 0 && request->_tempFile)    // write only if data exists AND file was opened successfully
   {
     // stream the incoming chunk to the opened file
     request->_tempFile.write(data, len);
   }
 
-  if (final && request->_tempFile)    // last part is to check that file was opened
+  if (final && request->_tempFile)    // close file only if upload finished AND file was opened successfully
   {
     // close the file handle as the upload is now done
     request->_tempFile.close();
-    request->redirect("/system_management.html");     // Only redirect if the file was uploaded. If a not allowed file was given, the upload ends in the <IP>/upload_data page (white page)
+    request->redirect("/system_management.html");     // Only redirect if the file was uploaded. If an invalid sensorIndex was given, the upload ends in the <IP>/upload_data page (white page)
 
+    serverUploadDataSensorIndex = -1;   // reset the sensor index for the next upload
     updateLastSensorMessages();
   }
-  else if (final && !request->_tempFile)    // return an error message if the file wasn't written
+  else if (final && !request->_tempFile)    // return an error message only if upload finished AND file was NOT opened
   {
-    request->send(200, "text/plain", "File couldn't be written. Make sure only to upload the allowed files!");
+    request->send(200, "text/plain", "Upload failed: Invalid sensorIndex or file could not be written!");
   }
 }
 
@@ -437,6 +430,11 @@ void initWebserverFiles()
   // upload a file to /upload_data
   server.on("/upload_data", HTTP_POST, [](AsyncWebServerRequest *request)
   {
+    serverUploadDataSensorIndex = -1;
+    if(request->hasParam("sensorIndex", true))
+    {
+      serverUploadDataSensorIndex = request->getParam("sensorIndex", true)->value().toInt();
+    }
     request->send(200);
   }, onUpload);
 

@@ -29,7 +29,8 @@ function bodyLoaded()
 			const numMsgElement = templateClone.querySelector('#sensor_X_num_msg');
 			const swVersionElement = templateClone.querySelector('#sensor_X_sw_version');
 			const macInputElement = templateClone.querySelector('#sensor_X_mac');
-			const downloadButtonElement = templateClone.querySelector('#submit_download_X');			
+			const downloadButtonElement = templateClone.querySelector('#submit_download_X');
+			
 			titleElement.id = `sensor_${sensor.index}_title`;
 			modeSelectElement.id = `sensor_mode_${sensor.index}`;
 			modeSelectedElement.id = `sensor_mode_selectedIndex_${sensor.index}`;
@@ -50,6 +51,13 @@ function bodyLoaded()
 			
 			const downloadForm = templateClone.querySelector('form[action="/download_data"]');
 			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			
+			// Upload form handling
+			const uploadForm = templateClone.querySelector('form[action="/upload_data"]');
+			uploadForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			const fileInput = uploadForm.querySelector('input[type="file"]');
+			const uploadButton = uploadForm.querySelector('button');
+			uploadButton.onclick = () => fileInput.click();
 			
 			// Fill content
 			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index} - KONFIGURATION`;
