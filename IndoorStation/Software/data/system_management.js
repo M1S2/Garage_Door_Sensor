@@ -29,7 +29,6 @@ function bodyLoaded()
 			const numMsgElement = templateClone.querySelector('#sensor_X_num_msg');
 			const swVersionElement = templateClone.querySelector('#sensor_X_sw_version');
 			const macInputElement = templateClone.querySelector('#sensor_X_mac');
-			const downloadButtonElement = templateClone.querySelector('#submit_download_X');
 			
 			titleElement.id = `sensor_${sensor.index}_title`;
 			modeSelectElement.id = `sensor_mode_${sensor.index}`;
@@ -37,7 +36,6 @@ function bodyLoaded()
 			numMsgElement.id = `num_msg_${sensor.index}`;
 			swVersionElement.id = `sensor_${sensor.index}_sw_version`;
 			macInputElement.id = `mac_sensor_${sensor.index}`;
-			downloadButtonElement.id = `submit_download_${sensor.index}`;
 			
 			// Update form action sensorIndex
 			const modeForm = templateClone.querySelector('form[action="/set_sensor_mode"]');
@@ -51,6 +49,7 @@ function bodyLoaded()
 			
 			const downloadForm = templateClone.querySelector('form[action="/download_data"]');
 			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
+			const downloadButton = downloadForm.querySelector('button');
 			
 			// Upload form handling
 			const uploadForm = templateClone.querySelector('form[action="/upload_data"]');
@@ -67,11 +66,31 @@ function bodyLoaded()
 			swVersionElement.textContent = sensor.swVersion;
 			macInputElement.value = sensor.mac;
 			
-			// Disable download button if no messages
-			downloadButtonElement.disabled = sensor.numMessages == 0;
+			// Store original MAC value for comparison
+			macInputElement.setAttribute('data-original-mac', sensor.mac);
+			// Get the MAC confirm button and set it up
+			const macConfirmButton = macForm.querySelector('.mac-confirm-button');
+			// Initial state
+			updateMacButtonState(macInputElement, macConfirmButton);
 			
-			// Add MAC formatting event listener
-			macInputElement.addEventListener('keyup', format_macs, false);
+			// Add MAC formatting and button state update on keyup
+			macInputElement.addEventListener('keyup', (e) =>
+			{
+				format_macs(e);
+				updateMacButtonState(macInputElement, macConfirmButton);
+			}, false);
+
+			// Update original MAC value after successful save
+			macForm.onsubmit = function(e)
+			{
+				macInputElement.setAttribute('data-original-mac', macInputElement.value);
+				updateMacButtonState(macInputElement, macConfirmButton);
+				submitMacMessage();
+				return true;
+			};
+
+			// Disable download button if no messages
+			downloadButton.disabled = sensor.numMessages == 0;
 			
 			// Insert before the first static card (System Info)
 			cardsContainer.insertBefore(templateClone, firstStaticCard);
@@ -106,6 +125,31 @@ function updateSystemTime()
 		document.getElementById("indoor_station_time").textContent = timeString;
 	})
 	.catch(error => console.error('Error loading system time:', error));
+}
+
+// Function to update button state based on MAC match
+function updateMacButtonState(macInputElement, macConfirmButton)
+{
+	const currentMac = macInputElement.value;
+	const originalMac = macInputElement.getAttribute('data-original-mac');
+	const icon = macConfirmButton.querySelector('i');
+	
+	if (currentMac === originalMac)
+	{
+		// MAC matches original - show check icon, hide button functionality
+		icon.textContent = 'check';
+		macConfirmButton.disabled = true;
+		macConfirmButton.style.opacity = '0.5';
+		macConfirmButton.title = 'MAC Adresse gespeichert';
+	}
+	else
+	{
+		// MAC differs - show save icon, enable button
+		icon.textContent = 'save';
+		macConfirmButton.disabled = false;
+		macConfirmButton.style.opacity = '1';
+		macConfirmButton.title = 'MAC Adresse speichern';
+	}
 }
 
 function submitMacMessage()

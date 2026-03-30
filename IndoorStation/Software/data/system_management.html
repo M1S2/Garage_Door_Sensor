@@ -48,34 +48,37 @@
 						<p id="sensor_X_sw_version">%SENSOR_SW_VERSION_X%</p>
 						<br>
 						<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
-						<form action="/set_mac_sensor" onsubmit="submitMacMessage()" target="hidden-form">
+						<form action="/set_mac_sensor" class="mac-form">
 							<input type="hidden" name="sensorIndex" value="X">
-							<input 	class="input_sensor" required
-									id="sensor_X_mac"
-									name="mac"
-									type="text"
-									value="%MAC_SENSOR_X%"
-									placeholder="00:00:00:00:00:00"
-									pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
-							<input class="submit_button" type="submit" value="Übernehmen">
+							<div class="mac-input-group">
+								<input	class="input_sensor" required
+										id="sensor_X_mac"
+										name="mac"
+										type="text"
+										value="%MAC_SENSOR_X%"
+										placeholder="00:00:00:00:00:00"
+										pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
+								<button class="mac-confirm-button" type="submit" title="MAC Adresse übernehmen"><i class="material-symbols-outlined">check</i></button>
+							</div>
 						</form>
-						<iframe style="display:none" name="hidden-form"></iframe>
 						<br>
 						<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
-						<form action="/remove_data" method="post" onsubmit="return confirm('Wirklich alle Daten löschen?');">
-							<input type="hidden" name="sensorIndex" value="X">
-							<input class="submit_button" type="submit" value="Daten löschen"/>
-						</form>
-						<form action="/download_data" method="get">
-							<input type="hidden" name="sensorIndex" value="X">
-							<input id="submit_download_X" class="submit_button" type="submit" value="Daten herunterladen" title="Sensor Daten vom ESP8266 herunterladen"/>
-						</form>
-						<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
-						<form action="/upload_data" method="POST" enctype="multipart/form-data">
-							<input type="hidden" name="sensorIndex" value="X">
-							<button class="submit_button" type="button" title="Sensor Daten auf den ESP8266 hochladen">Daten hochladen</button>
-							<input type="file" id="file_input_X" name="data" accept=".bin" style="display:none" onchange="this.form.submit()"/>
-						</form>
+						<div class="sensor-data-buttons">
+							<form action="/download_data" method="get" class="icon-button-form">
+								<input type="hidden" name="sensorIndex" value="X">
+								<button class="icon-button" type="submit" title="Daten herunterladen"><i class="material-symbols-outlined">download</i></button>
+							</form>
+							<!-- https://github.com/smford/esp32-asyncwebserver-fileupload-example/blob/master/example-01/example-01.ino -->
+							<form action="/upload_data" method="POST" enctype="multipart/form-data" class="icon-button-form">
+								<input type="hidden" name="sensorIndex" value="X">
+								<button class="icon-button" type="button" title="Daten hochladen"><i class="material-symbols-outlined">upload</i></button>
+								<input type="file" id="file_input_X" name="data" accept=".bin" style="display:none" onchange="this.form.submit()"/>
+							</form>
+							<form action="/remove_data" method="post" onsubmit="return confirm('Wirklich alle Daten löschen?');" class="icon-button-form">
+								<input type="hidden" name="sensorIndex" value="X">
+								<button class="icon-button icon-button-delete" type="submit" title="Daten löschen"><i class="material-symbols-outlined">delete</i></button>
+							</form>
+						</div>
 					</div>
 				</template>
 
