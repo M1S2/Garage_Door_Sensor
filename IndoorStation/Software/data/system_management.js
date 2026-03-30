@@ -41,26 +41,26 @@ function bodyLoaded()
 			
 			// Update form action sensorIndex
 			const modeForm = templateClone.querySelector('form[action="/set_sensor_mode"]');
-			modeForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			modeForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
 			const macForm = templateClone.querySelector('form[action="/set_mac_sensor"]');
-			macForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			macForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
 			const removeForm = templateClone.querySelector('form[action="/remove_data"]');
-			removeForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			removeForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
 			const downloadForm = templateClone.querySelector('form[action="/download_data"]');
-			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
 			// Upload form handling
 			const uploadForm = templateClone.querySelector('form[action="/upload_data"]');
-			uploadForm.querySelector('input[name="sensorIndex"]').value = sensor.index - 1;
+			uploadForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			const fileInput = uploadForm.querySelector('input[type="file"]');
 			const uploadButton = uploadForm.querySelector('button');
 			uploadButton.onclick = () => fileInput.click();
 			
 			// Fill content
-			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index} - KONFIGURATION`;
+			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index + 1} - KONFIGURATION`;
 			modeSelectedElement.value = sensor.mode;
 			modeSelectElement.value = sensor.mode;
 			numMsgElement.textContent = sensor.numMessages;

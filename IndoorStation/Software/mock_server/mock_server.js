@@ -221,7 +221,7 @@ app.get("/get_sensor_status", (req, res) =>
         const percentage = battery_voltageToPercent(voltage_mV);
 
         const sensor = {
-            index: i+1,
+            index: i,
             mac: sensorMACs[i],
             // Status data
             state: pinState,

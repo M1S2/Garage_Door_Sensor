@@ -299,7 +299,7 @@ void initWebserverFiles()
     for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
       JsonObject sensor = sensors.createNestedObject();
-      sensor["index"] = i+1;
+      sensor["index"] = i;
       if(sensor_messages_latest[i].timestamp != -1)
       {
         sensor["state"] = sensor_messages_latest[i].msg.pinState;

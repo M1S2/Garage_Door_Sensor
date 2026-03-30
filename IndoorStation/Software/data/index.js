@@ -62,7 +62,7 @@ function bodyLoaded()
 			errorDivElement.id = `sensor_${sensor.index}_error`;
 			macElement.id = `sensor_${sensor.index}_mac`;
 			
-			titleElement.textContent = `#${sensor.index}`;
+			titleElement.textContent = `#${sensor.index + 1}`;
 
 			// Check if sensor is in special mode
 			let modeContent = getSensorModeContent(sensor.mode);
