@@ -277,6 +277,7 @@ nav a.active
 {
 	background-color: var(--disabled-background);
 	color: var(--disabled-text-color);
+	transform: scale(1.0);
 }
 
 .submit_button.load_data_button
@@ -326,6 +327,13 @@ nav a.active
 	background-color: var(--mouse-over-background);
 	color: var(--mouse-over-text-color);
 	transform: scale(1.1);
+}
+
+.icon-button:disabled 
+{
+	background-color: var(--disabled-background);
+	color: var(--disabled-text-color);
+	transform: scale(1.0);
 }
 
 .icon-button:active

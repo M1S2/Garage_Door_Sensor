@@ -42,8 +42,6 @@ time_t serverGetDataTimeTo;
 message_sensor_timestamped_t serverGetDataPendingMessage;
 bool serverGetDataHasPendingMessage = false;
 
-int8_t serverUploadDataSensorIndex = -1;
-
 /**********************************************************************/
 
 void updateLeds_sensorStatus()
@@ -183,15 +181,24 @@ void btnHandler_pairing_click(Button2& btn)
 
 void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-  if (!index)
+  // For the first chunk: read sensorIndex from the request and open the file
+  if (index == 0)
   {
-    // Only allow upload if sensorIndex is valid
-    if(serverUploadDataSensorIndex >= 0 && serverUploadDataSensorIndex < NUM_SUPPORTED_SENSORS)
+    int sensorIndex = -1;
+    if (request->hasParam("sensorIndex", true))
+    {
+      sensorIndex = request->getParam("sensorIndex", true)->value().toInt();
+    }
+    if (sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
     {
       // open the file with the correct format (ignoring the uploaded filename) on first call and store the file handle in the request object
       char strBuf[32];
-      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, serverUploadDataSensorIndex);
+      sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
       request->_tempFile = LittleFS.open(strBuf, "w");
+    }
+    else
+    {
+      request->_tempFile = File(); // invalid / empty file object
     }
   }
 
@@ -201,18 +208,20 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
     request->_tempFile.write(data, len);
   }
 
-  if (final && request->_tempFile)    // close file only if upload finished AND file was opened successfully
+  // Upload finished
+  if (final)
   {
-    // close the file handle as the upload is now done
-    request->_tempFile.close();
-    request->redirect("/system_management.html");     // Only redirect if the file was uploaded. If an invalid sensorIndex was given, the upload ends in the <IP>/upload_data page (white page)
-
-    serverUploadDataSensorIndex = -1;   // reset the sensor index for the next upload
-    updateLastSensorMessages();
-  }
-  else if (final && !request->_tempFile)    // return an error message only if upload finished AND file was NOT opened
-  {
-    request->send(200, "text/plain", "Upload failed: Invalid sensorIndex or file could not be written!");
+    if (request->_tempFile)    // file was opened successfully before
+    {
+      // close the file handle as the upload is now done
+      request->_tempFile.close();
+      request->redirect("/system_management.html");     // Only redirect if the file was uploaded. If an invalid sensorIndex was given, the upload ends in the <IP>/upload_data page (white page)
+      updateLastSensorMessages();
+    }
+    else                      // return an error message only if file was NOT opened before
+    {
+      request->send(200, "text/plain", "Upload failed: Invalid sensorIndex or file could not be written!");
+    }
   }
 }
 
@@ -430,12 +439,7 @@ void initWebserverFiles()
   // upload a file to /upload_data
   server.on("/upload_data", HTTP_POST, [](AsyncWebServerRequest *request)
   {
-    serverUploadDataSensorIndex = -1;
-    if(request->hasParam("sensorIndex", true))
-    {
-      serverUploadDataSensorIndex = request->getParam("sensorIndex", true)->value().toInt();
-    }
-    request->send(200);
+    /* Everything handled in onUpload() */
   }, onUpload);
 
   // ----------------------------------

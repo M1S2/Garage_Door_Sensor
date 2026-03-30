@@ -90,7 +90,7 @@ function bodyLoaded()
 			};
 
 			// Disable download button if no messages
-			downloadButton.disabled = sensor.numMessages == 0;
+			downloadButton.disabled = Number(sensor.numMessages) === 0;
 			
 			// Insert before the first static card (System Info)
 			cardsContainer.insertBefore(templateClone, firstStaticCard);
@@ -134,7 +134,7 @@ function updateMacButtonState(macInputElement, macConfirmButton)
 	const originalMac = macInputElement.getAttribute('data-original-mac');
 	const icon = macConfirmButton.querySelector('i');
 	
-	if (currentMac === originalMac)
+	if (currentMac.toUpperCase() === originalMac.toUpperCase())
 	{
 		// MAC matches original - show check icon, hide button functionality
 		icon.textContent = 'check';
