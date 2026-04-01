@@ -4,6 +4,7 @@
 #include <WS2812FX.h>
 
 #define NUM_LEDS                3                         // Number of WS2812B leds
+#define NUM_SENSOR_LEDS         NUM_LEDS - 1              // Number of WS2812B sensor leds
 #define LEDS_PIN                14                        // The pin which is used to control the WS2812 leds
 
 #define SENSOR1_LED_INDEX       0

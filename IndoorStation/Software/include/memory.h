@@ -47,7 +47,7 @@ void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_times
 /**
  * Get the latest available sensor message for the requested sensor.
  * @param sensorIndex Index of the sensor, for which the last message is returned. If lager than NUM_SUPPORTED_SENSORS it is limited to this value.
- * @return Last sensor message for the requested sensor.
+ * @return Last sensor message for the requested sensor. If no message is available, a message with timestamp -1 is returned.
  */
 message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex);
 

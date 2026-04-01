@@ -48,6 +48,13 @@ void updateLeds_sensorStatus()
 {
   for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
   {
+    if(i >= NUM_SENSOR_LEDS)
+    {
+      // Only the first NUM_SENSOR_LEDS leds are used for sensor status.
+      // If more sensors are supported than NUM_SENSOR_LEDS, the additional sensors are not indicated by leds.
+      break;
+    }
+
     switch(sensor_modes[i])
     {
       case SENSOR_MODE_DISABLED: leds_singleOff(i); break;

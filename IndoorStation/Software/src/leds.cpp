@@ -28,6 +28,13 @@ void leds_allOff()
 
 void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow)
 {
+    if(index >= NUM_SENSOR_LEDS)
+    {
+        // Only the first NUM_SENSOR_LEDS leds are used for sensor status.
+        // If more sensors are supported than NUM_SENSOR_LEDS, the additional sensors are not indicated by leds.
+        return;
+    }
+
     if(isOpen)
     {
         if(batteryLow)
@@ -56,12 +63,26 @@ void leds_sensorStatus(uint8_t index, bool isOpen, bool batteryLow)
 
 void leds_sensorPairing(uint8_t index)
 {
+    if(index >= NUM_SENSOR_LEDS)
+    {
+        // Only the first NUM_SENSOR_LEDS leds are used for sensor status.
+        // If more sensors are supported than NUM_SENSOR_LEDS, the additional sensors are not indicated by leds.
+        return;
+    }
+
     leds.setSegment(index, index, index, FX_MODE_BLINK, COLORS(COLOR_PAIRING_1, COLOR_PAIRING_2), 800);
     leds.addActiveSegment(index);
 }
 
 void leds_sensorCharging(uint8_t index)
 {
+    if(index >= NUM_SENSOR_LEDS)
+    {
+        // Only the first NUM_SENSOR_LEDS leds are used for sensor status.
+        // If more sensors are supported than NUM_SENSOR_LEDS, the additional sensors are not indicated by leds.
+        return;
+    }
+    
     setLedStatic(index, COLOR_SENSOR_CHARGING);
 }
 

@@ -81,11 +81,18 @@ uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex)
 	
 	char strBuf[32];
 	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
-	File memoryFile = LittleFS.open(strBuf, "r");
-    size_t fileSize = memoryFile.size();
-    memoryFile.close();
-	
-    return fileSize / sizeof(message_sensor_timestamped_t);
+    if(LittleFS.exists(strBuf))
+    {
+        File memoryFile = LittleFS.open(strBuf, "r");
+        size_t fileSize = memoryFile.size();
+        memoryFile.close();
+        
+        return fileSize / sizeof(message_sensor_timestamped_t);
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_timestamped_t* sensorMessagesBuffer)
@@ -99,17 +106,20 @@ void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_times
 	
 	uint16_t numberSensorMessages = memory_getNumberSensorMessages(sensorIndex);
 	
-	char strBuf[32];
-	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
-	File memoryFile = LittleFS.open(strBuf, "r");
-
-	for(int i = 0; i < numberSensorMessages; i++)
+    if(numberSensorMessages > 0)
     {
-		message_sensor_timestamped_t sensorMessage;
-		memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
-		sensorMessagesBuffer[i] = sensorMessage;
-	}
-	memoryFile.close();
+        char strBuf[32];
+        sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
+        File memoryFile = LittleFS.open(strBuf, "r");
+
+        for(int i = 0; i < numberSensorMessages; i++)
+        {
+            message_sensor_timestamped_t sensorMessage;
+            memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+            sensorMessagesBuffer[i] = sensorMessage;
+        }
+        memoryFile.close();
+    }
 }
 
 message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex)
@@ -121,13 +131,24 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
 	
 	char strBuf[32];
 	sprintf(strBuf, FILENAME_HISTORY_SENSOR_FORMAT, sensorIndex);
-	File memoryFile = LittleFS.open(strBuf, "r");
-	memoryFile.seek(sizeof(message_sensor_timestamped_t), SeekEnd);		// move file pointer to beginning of last entry
+    if(LittleFS.exists(strBuf))
+    {
+        File memoryFile = LittleFS.open(strBuf, "r");
+        memoryFile.seek(sizeof(message_sensor_timestamped_t), SeekEnd);		// move file pointer to beginning of last entry
 
-	message_sensor_timestamped_t sensorMessage;
-	memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
-	memoryFile.close();
-	return sensorMessage;
+        message_sensor_timestamped_t sensorMessage;
+        memoryFile.read((uint8_t*)&sensorMessage, sizeof(message_sensor_timestamped_t));
+        memoryFile.close();
+        return sensorMessage;
+    }
+    else
+    {
+        // return an invalid message if no message exists for the requested sensor
+        message_sensor_timestamped_t invalidMessage;
+        invalidMessage.timestamp = -1;
+        return invalidMessage;
+    }
+
 }
 
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage)
