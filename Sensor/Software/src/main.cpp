@@ -20,7 +20,7 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 #define ADC_RESISTOR_R8     390.0f  // Resistor value in kOhm, from the battery voltage to the ADC input
 #define ADC_RESISTOR_R9     100.0f  // Resistor value in kOhm, from the ADC input to GND
 
-//#define DEBUG_OUTPUT                // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save battery power)
+#define DEBUG_OUTPUT                // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save battery power)
 
 uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
 
@@ -228,6 +228,74 @@ bool sendSensorData(bool isPairingMessage = false)
 	return false;       // if ended here, the data couldn't be send on any channel
 }
 
+
+struct __attribute__((packed)) BroadcastMessage
+{
+  uint32_t magic;
+  uint32_t counter;
+  uint8_t senderMac[6];
+  char text[32];
+};
+
+void printMac(const uint8_t* mac)
+{
+  for (int i = 0; i < 6; i++)
+  {
+    if (mac[i] < 16) Serial.print("0");
+    Serial.print(mac[i], HEX);
+    if (i < 5) Serial.print(":");
+  }
+}
+
+void onDataRecv(uint8_t *mac, uint8_t *incomingData, uint8_t len)
+{
+  Serial.println();
+  Serial.println("=================================");
+  Serial.println("Broadcast empfangen");
+
+  Serial.print("Absender MAC (Callback): ");
+  printMac(mac);
+  Serial.println();
+
+  Serial.print("Laenge: ");
+  Serial.println(len);
+
+  if (len != sizeof(BroadcastMessage))
+  {
+    Serial.println("Unerwartete Nachrichtenlaenge!");
+    Serial.println("=================================");
+    return;
+  }
+
+  BroadcastMessage msg;
+  memcpy(&msg, incomingData, sizeof(msg));
+
+  if (msg.magic != 0xA55A1234)
+  {
+    Serial.println("Magic Number ungueltig!");
+    Serial.println("=================================");
+    return;
+  }
+
+  Serial.print("Magic: 0x");
+  Serial.println(msg.magic, HEX);
+
+  Serial.print("Counter: ");
+  Serial.println(msg.counter);
+
+  Serial.print("Sender MAC (Payload): ");
+  printMac(msg.senderMac);
+  Serial.println();
+
+  Serial.print("Text: ");
+  Serial.println(msg.text);
+
+  Serial.println("=================================");
+}
+
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+
 void setup()
 {
   pinMode(MCU_LATCH_PIN, OUTPUT);
@@ -267,12 +335,26 @@ void setup()
   #ifdef DEBUG_OUTPUT
     Serial.println("Start to send pairing messages.");
   #endif
+
+
+  //esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
+  esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+  esp_now_register_recv_cb(onDataRecv);
+  if (esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0) != 0)
+  {
+    Serial.println("Broadcast Peer hinzufügen fehlgeschlagen!");
+  }
+  else
+  {
+    Serial.println("Broadcast Peer hinzugefügt.");
+  }
 }
  
 void loop()
 {
   // The pairing data is send until the pairing switch is released. Even if the indoor station received the pairing data, it is send by the sensor but ignored by the indoor station.
   // No advanced acknowledge mechanism is used here.
-  sendSensorData(true);
+  
+  //sendSensorData(true);
   toggleLedState();
 }

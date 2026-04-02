@@ -8,7 +8,7 @@
 #define BTN_RESET_PIN           16                        // The pin which is used for the reset button
 
 #define SENSOR_PIN_STATE_OPEN   LOW                       // This pin state of the sensor is interpreted as open door
-#define NUM_SUPPORTED_SENSORS   2                         // The number of supported sensors
+#define NUM_SUPPORTED_SENSORS   3                         // The number of supported sensors
 
 #define CONNECTION_TIMEOUT_MS   10000                     // Timeout in ms for connection to router
 #define WIFI_HOSTNAME           "Garagen Tor Status"      // Name that is displayed for this device by the router

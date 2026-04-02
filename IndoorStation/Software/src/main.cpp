@@ -582,6 +582,41 @@ void initWebserverFiles()
 
 /**********************************************************************/
 
+
+struct __attribute__((packed)) BroadcastMessage
+{
+  uint32_t magic;
+  uint32_t counter;
+  uint8_t senderMac[6];
+  char text[32];
+};
+
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint32_t messageCounter = 0;
+
+unsigned long lastSendTime = 0;
+const unsigned long sendIntervalMs = 2000;
+
+void onDataSent(uint8_t *mac_addr, uint8_t sendStatus)
+{
+}
+
+void sendBroadcast()
+{
+  BroadcastMessage msg;
+  msg.magic = 0xA55A1234;
+  msg.counter = messageCounter++;
+
+  WiFi.macAddress(msg.senderMac);
+  strncpy(msg.text, "Hallo vom Broadcast-Sender", sizeof(msg.text));
+
+  uint8_t result = esp_now_send(broadcastAddress, (uint8_t*)&msg, sizeof(msg));
+}
+
+
+
+
+
 void setup()
 {
   #ifdef DEBUG_OUTPUT
@@ -652,6 +687,9 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   esp_now_register_recv_cb(messageReceived);
+  esp_now_register_send_cb(onDataSent);
+
+  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
 }
 
 /**********************************************************************/
@@ -663,6 +701,15 @@ void loop()
   btn_pairing.loop();
   leds.service();
   otaUpdate_loop();
+
+  if(sensor_modes[NUM_SUPPORTED_SENSORS - 1] == SENSOR_MODE_PAIRING)
+  {
+    if (millis() - lastSendTime >= sendIntervalMs)
+    {
+      lastSendTime = millis();
+      sendBroadcast();
+    }
+  }
 
   if(sensor_message_received)
   {
