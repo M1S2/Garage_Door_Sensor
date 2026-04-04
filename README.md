@@ -32,8 +32,6 @@ The following parts must be flashed:
 - Firmware: Use the `Build` and `Upload` PlatformIO tasks.
 - Filesystem (containing the website files): Use the `Build Filesystem Image` and `Upload Filesystem Image` PlatformIO tasks.
 
-Use the `Monitor` PlatformIO task to view the output messages at startup and note the MAC address. This is later needed before compiling the sensor firmware.
-
 ## Building the Sensor
 You need to build one sensor per door to monitor. The current version of the indoor station is capable of displaying 2 sensors at the same time. If you need more sensors, the indoor station must be adapted. No changes to the sensor are necessary.
 ### PCBs and Housing
@@ -55,10 +53,6 @@ The following image shows all parts of the Sensor:
 The software files are located in the [Software files for Sensor](Sensor/Software) subfolder.
 
 To build and flash the lastest software to the sensor ESP12-F download and install Visual Studio Code and install the PlatformIO extension. The following page explains the whole process: https://randomnerdtutorials.com/vs-code-platformio-ide-esp32-esp8266-arduino/
-
-Before building and flashing the software, follow the instructions in the [`addresses_Template.h`](Sensor/Software/include/addresses_Template.h) file. It is necessary to build the IndoorStation first to get the MAC address of the IndoorStation ESP12-F!
-
-Use the `Monitor` PlatformIO task to view the output messages at startup and note the MAC address. This is later needed for sensor pairing (e.g. create a sticker with the MAC address on the back of the sensor housing).
 
 ## Usage
 This chapter describes the basic usage of the indoor station and sensor. It is necessary to build at least one device each before proceding.

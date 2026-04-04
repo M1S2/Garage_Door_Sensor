@@ -8,12 +8,16 @@
 #define BTN_RESET_PIN           16                        // The pin which is used for the reset button
 
 #define SENSOR_PIN_STATE_OPEN   LOW                       // This pin state of the sensor is interpreted as open door
-#define NUM_SUPPORTED_SENSORS   2                         // The number of supported sensors
+#define NUM_SUPPORTED_SENSORS   3                         // The number of supported sensors
 
 #define CONNECTION_TIMEOUT_MS   10000                     // Timeout in ms for connection to router
 #define WIFI_HOSTNAME           "Garagen Tor Status"      // Name that is displayed for this device by the router
 #define CONFIGURATION_AP_NAME   "Garagen Tor Status AP"   // Name for the configuration access point
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
+
+#define PAIRING_AP_NAME_BASE    "GaragenTorPairing-"      // Base name for the pairing access point (it is appended by the chip id to make it unique)
+#define PAIRING_AP_PW           ""                        // Password for the pairing access point
+#define PAIRING_AP_TIMEOUT_MS   60000                     // Timeout in ms for the pairing access point. Use 0 to disable the timeout and keep the AP active until it is manually stopped.
 
 // https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8
 #define ARRAY_ELEMENT_COUNT(array) (sizeof array / sizeof array[0])

@@ -8,21 +8,9 @@
 #include <Arduino.h>
 #include <espnow.h>
 #include <ESP8266WiFi.h>
-#include "addresses.h"
+#include "pairing.h"
 #include "version.h"
-
-#define MCU_LATCH_PIN       12      // GPIO 12
-#define DOOR_SWITCH_PIN     14      // GPIO 14
-#define MAX_SEND_RETRIES    10      // Number of send retries for each channel before changing to the next channel
-#define MAX_WIFI_CHANNELS   13      // 13 in Europe, 11 for North America (adapt the following list accordingly)
-uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13};      // First try to use the channels 1, 6 and 11 to send (these are the most assigned ones by routers)
-
-#define ADC_RESISTOR_R8     390.0f  // Resistor value in kOhm, from the battery voltage to the ADC input
-#define ADC_RESISTOR_R9     100.0f  // Resistor value in kOhm, from the ADC input to GND
-
-//#define DEBUG_OUTPUT                // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save battery power)
-
-uint8_t indoor_station_mac[] = INDOOR_STATION_MAC;
+#include "config.h"
 
 // Packing of this structure reduces the size to 5 bytes
 PACK_STRUCT_BEGIN
@@ -34,8 +22,6 @@ typedef struct message_sensor
   PACK_STRUCT_FLD_8(uint8_t sensor_sw_version);     // This field contains the software version of the sensor in the following format: Upper 4 bits contain the Major number, lower 4 bits contain the Minor number (each number can be in the range from 0..15)
 }PACK_STRUCT_STRUCT message_sensor_t;
 PACK_STRUCT_END
-
-#define PAIRING_MAGIC_NUMBER    0xCAFEBEEF
 
 PACK_STRUCT_BEGIN
 typedef struct message_pairing
@@ -114,17 +100,17 @@ void initEspNow(uint8_t wifiChannel)
   if (esp_now_init() != 0) 
   {
     #ifdef DEBUG_OUTPUT
-      Serial.println("Error initializing ESP-NOW");
+      Serial.println("[Main] Error initializing ESP-NOW");
     #endif
   }
   esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
   // set callback routines
   esp_now_register_send_cb(OnDataSent);
 
-  if(esp_now_add_peer(indoor_station_mac, ESP_NOW_ROLE_COMBO, wifiChannel, NULL, 0) != 0)
+  if(esp_now_add_peer(PairingInfo.indoor_station_mac, ESP_NOW_ROLE_COMBO, wifiChannel, NULL, 0) != 0)
   {
     #ifdef DEBUG_OUTPUT
-      Serial.println("Failed to add peer");
+      Serial.println("[Main] Failed to add peer");
     #endif
   }
 }
@@ -159,7 +145,7 @@ float getBatteryVoltage()
   float batteryVoltage_V = adcVoltage_V * ((ADC_RESISTOR_R8 + ADC_RESISTOR_R9) / ADC_RESISTOR_R9);
 
   #ifdef DEBUG_OUTPUT
-    Serial.printf("ADC value=%d, ADC Voltage=%f V, Battery Voltage=%f V\n", adcReadVal, adcVoltage_V, batteryVoltage_V);
+    Serial.printf("[Main] ADC value=%d, ADC Voltage=%f V, Battery Voltage=%f V\n", adcReadVal, adcVoltage_V, batteryVoltage_V);
   #endif
   return batteryVoltage_V;
 }
@@ -173,6 +159,14 @@ float getBatteryVoltage()
  */
 bool sendSensorData(bool isPairingMessage = false)
 {
+  if(!pairing_isPairingInfoValid())
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] No valid pairing info available. Can't send data.");
+    #endif
+    return false;
+  }
+
 	message_sensor_t sensor_message;
 	message_pairing_t pairing_message;
   
@@ -201,12 +195,12 @@ bool sendSensorData(bool isPairingMessage = false)
 			loop_cnt++;
 			if(isPairingMessage)
 			{
-				esp_now_send(indoor_station_mac, (uint8_t*) &pairing_message, sizeof(pairing_message));
+				esp_now_send(PairingInfo.indoor_station_mac, (uint8_t*) &pairing_message, sizeof(pairing_message));
 			}
 			else
 			{
 				sensor_message.numberSendLoops = loop_cnt + wifiChannelIndex * MAX_SEND_RETRIES;
-				esp_now_send(indoor_station_mac, (uint8_t*) &sensor_message, sizeof(sensor_message));
+				esp_now_send(PairingInfo.indoor_station_mac, (uint8_t*) &sensor_message, sizeof(sensor_message));
 			}
 			while(messageSentReady == false) { delay(1); /* wait here. */ }
 		}while(messageSentSuccessful == false && loop_cnt < MAX_SEND_RETRIES);
@@ -214,19 +208,23 @@ bool sendSensorData(bool isPairingMessage = false)
 		if(messageSentSuccessful)
 		{
 			#ifdef DEBUG_OUTPUT
-				Serial.printf("Send message successful on channel %d.\n", wifiChannel);
+				Serial.printf("[Main] Send message successful on channel %d.\n", wifiChannel);
 			#endif
 			return true;    // break the wifiChannel for loop and return true to signal send success
 		}
 		else
 		{
 			#ifdef DEBUG_OUTPUT
-				Serial.printf("Send message not successful on channel %d. Move to next channel.\n", wifiChannel);
+				Serial.printf("[Main] Send message not successful on channel %d. Move to next channel.\n", wifiChannel);
 			#endif
 		}
 	}
 	return false;       // if ended here, the data couldn't be send on any channel
 }
+
+/**********************************************************************/
+
+bool pairing_fetchInfoSuccess = false;
 
 void setup()
 {
@@ -242,18 +240,31 @@ void setup()
   #ifdef DEBUG_OUTPUT
     Serial.begin(115200);
     Serial.println();
-    Serial.print("Version of Garage Door Sensor SW: v");
+    Serial.print("[Main] Version of Garage Door Sensor SW: v");
     Serial.printf("%d.%d\n", SENSOR_SW_VERSION_MAJOR, SENSOR_SW_VERSION_MINOR);
-    Serial.print("My MAC-Address: ");
+    Serial.print("[Main] My MAC-Address: ");
     Serial.println(WiFi.macAddress());
   #endif
 
-  sendSensorData(false);
+  if (pairing_loadPairingInfo())
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] Pairing info loaded.");
+    #endif
+  }
+  else
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] No valid pairing info available.");
+    #endif
+  }
+
+  bool sendSuccess = sendSensorData(false);
 
   digitalWrite(MCU_LATCH_PIN, LOW);    // Disable latch pin to power off ESP
 
   #ifdef DEBUG_OUTPUT
-    Serial.println("Sending sensor data successful. Wait 5 seconds before starting pairing.");
+    Serial.println("[Main] Sending sensor data " + String(sendSuccess ? "successful" : "failed") + ". Wait 5 seconds before starting pairing.");
   #endif
 
   // delay 5 seconds after disabling the latch pin. If the ESP continues here and in the loop(), the sensor is held on via the pairing switch.
@@ -265,14 +276,58 @@ void setup()
   setLedState(true);    // LED on
 
   #ifdef DEBUG_OUTPUT
-    Serial.println("Start to send pairing messages.");
+    Serial.println("[Main] Fetch pairing info from indoor station...");
   #endif
+
+  pairing_fetchInfoSuccess = pairing_runPairing();
+  if (pairing_fetchInfoSuccess)
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] Finding pairing info successful!");
+    #endif
+    
+    // save the pairing info (including the received MAC) in the EEPROM to be able to load it after a power cycle without the need of pairing again
+    pairing_savePairingInfo();
+  }
+  else
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] Finding pairing info failed.");
+    #endif
+  }
+  
+  // Disable WiFi to save power.
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+
+  if(pairing_fetchInfoSuccess)
+  {
+    #ifdef DEBUG_OUTPUT
+      Serial.println("[Main] Start to send pairing messages.");
+    #endif
+
+    // Send the pairing message as long as it is received by the indoor station.
+    sendSuccess = false;
+    do
+    {
+      toggleLedState();
+      sendSuccess = sendSensorData(true);
+      #ifdef DEBUG_OUTPUT
+        if(sendSuccess)
+        {
+          Serial.println("[Main] Send pairing message successful.");
+        }
+        else
+        {
+          Serial.println("[Main] Send pairing message failed. Retry...");
+        }
+      #endif
+    } while (!sendSuccess);
+    setLedState(true);    // LED on
+  }
 }
  
 void loop()
 {
-  // The pairing data is send until the pairing switch is released. Even if the indoor station received the pairing data, it is send by the sensor but ignored by the indoor station.
-  // No advanced acknowledge mechanism is used here.
-  sendSensorData(true);
-  toggleLedState();
+  // Nothing to do here.
 }

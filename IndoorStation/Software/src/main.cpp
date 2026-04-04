@@ -20,6 +20,7 @@
 #include "timeHandling.h"
 #include "otaUpdate.h"
 #include "memory.h"
+#include "pairing.h"
 #include "version.h"
 
 // To increase the FS size https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
@@ -126,6 +127,28 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
   {
     sensor_modes[sensorIndex] = mode;
     updateLeds_sensorStatus();
+
+    if(mode == SENSOR_MODE_PAIRING)
+    {
+      pairing_startPairingAP();
+    }
+    else
+    {
+      pairing_stopPairingAP();
+    }
+  }
+}
+
+/**********************************************************************/
+
+void pairing_stopAllSensorsPairingMode()
+{
+  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
+  {
+    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+    {
+      setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
+    }
   }
 }
 
@@ -179,7 +202,12 @@ void btnHandler_pairing_click(Button2& btn)
   if(indexFirstSensorInPairingMode != -1)
   {
     setSensorMode(indexFirstSensorInPairingMode, SENSOR_MODE_NORMAL);
-    int indexNextSensor = (indexFirstSensorInPairingMode + 1) % NUM_SUPPORTED_SENSORS;  // increment to the next sensor and roll over at the last sensor.
+    // increment to the next sensor and roll over at the last sensor.
+    int indexNextSensor = indexFirstSensorInPairingMode + 1;
+    if(indexNextSensor >= NUM_SENSOR_LEDS)
+    {
+      indexNextSensor = 0;
+    }
     setSensorMode(indexNextSensor, SENSOR_MODE_PAIRING);
   }
 }
@@ -578,6 +606,21 @@ void initWebserverFiles()
     }
     request->redirect("/system_management.html");
   });
+
+  // ----------------------------------
+
+  server.on("/get_pairing_info", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    DynamicJsonDocument doc(256);
+    doc["isPairingApActive"] = pairing_isAPOpen;
+    if(pairing_isAPOpen)
+    {
+      doc["indoor_station_mac"] = WiFi.macAddress();
+    }
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
 }
 
 /**********************************************************************/
@@ -663,6 +706,12 @@ void loop()
   btn_pairing.loop();
   leds.service();
   otaUpdate_loop();
+
+  if(pairing_handlePairingAPTimeout())
+  {
+    // If the pairing AP timeout occurred, set all sensors that are in pairing mode back to normal mode.
+    pairing_stopAllSensorsPairingMode();
+  }
 
   if(sensor_message_received)
   {
