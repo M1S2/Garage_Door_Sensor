@@ -7,6 +7,7 @@
 
 #define FILENAME_HISTORY_SENSOR_FORMAT		"/dataSensor%d.bin"
 #define FILENAME_SENSOR_MACS		        "/sensorMacs.bin"
+#define FILENAME_SENSOR_MODES		        "/sensorModes.bin"
 
 /**
  * Delete all saved data files (sensor history, sensor MACs).
@@ -76,5 +77,18 @@ void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6]);
  * @return Structure with internal 2D array containing the MAC addresses for all sensors
 */
 MacArrayStruct_t memory_getSensorMacs();
+
+/**
+ * Save the given sensor modes
+ * @param sensor_modes Sensor modes to save
+*/
+void memory_saveSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS]);
+
+/**
+ * Read the saved sensor modes
+ * @param sensor_modes Output parameter to which the read sensor modes are written. Make sure, the array is large enough (NUM_SUPPORTED_SENSORS) !!!
+ * @return True if sensor modes were successfully read; otherwise false
+*/
+bool memory_getSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS]);
 
 #endif

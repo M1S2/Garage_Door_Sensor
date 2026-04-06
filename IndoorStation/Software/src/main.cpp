@@ -133,6 +133,7 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
     {
       pairing_disablePairingModeForSensor(sensorIndex);
       sensor_modes[sensorIndex] = mode;
+      memory_saveSensorModes(sensor_modes);   // Only save if not in pairing mode, because pairing mode is only temporary and should not be saved persistently
     }
 
     updateLeds_sensorStatus();
@@ -636,11 +637,16 @@ void setup()
   // Load saved sensor_macs
   memcpy(sensor_macs, memory_getSensorMacs().macs, sizeof(sensor_macs));
 
-  // Reset all sensor modes to Normal
-  for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+  // Read all sensor modes from the persisted file or set them to normal on fail
+  if(!memory_getSensorModes(sensor_modes))
   {
-    setSensorMode(i, SENSOR_MODE_NORMAL);
+    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+        sensor_modes[i] = SENSOR_MODE_NORMAL;
+    }
+    memory_saveSensorModes(sensor_modes);
   }
+  updateLeds_sensorStatus();
 
   updateLastSensorMessages();
 

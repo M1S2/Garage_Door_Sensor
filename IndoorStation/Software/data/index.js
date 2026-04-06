@@ -66,7 +66,7 @@ function bodyLoaded()
 
 			// Check if sensor is in special mode
 			let modeContent = getSensorModeContent(sensor.mode);
-			if(!modeContent && sensor.numMessages === 0)
+			if(!modeContent && sensor.mode !== SENSOR_MODE_ONLY_DISPLAY && sensor.numMessages === 0)
 			{
 				modeContent = '<div class="sensor-mode-indicator"><i class="material-symbols-outlined">mail_off</i><br>Keine Sensor Daten</div>';
 			}

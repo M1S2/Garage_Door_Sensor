@@ -170,6 +170,7 @@ bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t s
 void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6])
 {
     File memoryFile = LittleFS.open(FILENAME_SENSOR_MACS, "w+");
+    if(!memoryFile) { return; }
     memoryFile.write((uint8_t*)sensor_macs, NUM_SUPPORTED_SENSORS * 6 * 1);
 	memoryFile.close();
 }
@@ -179,8 +180,33 @@ MacArrayStruct_t memory_getSensorMacs()
     MacArrayStruct_t macStruct;
 
     File memoryFile = LittleFS.open(FILENAME_SENSOR_MACS, "r");
+    if(!memoryFile) { return macStruct; }
     memoryFile.read((uint8_t*)macStruct.macs, NUM_SUPPORTED_SENSORS * 6 * 1);
 	memoryFile.close();
 
     return macStruct;
+}
+
+void memory_saveSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS])
+{
+    File memoryFile = LittleFS.open(FILENAME_SENSOR_MODES, "w+");
+    if(!memoryFile) { return; }
+    memoryFile.write((uint8_t*)sensor_modes, NUM_SUPPORTED_SENSORS * sizeof(SensorModes));
+    memoryFile.close();
+}
+
+bool memory_getSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS])
+{
+    File memoryFile = LittleFS.open(FILENAME_SENSOR_MODES, "r");
+    if(!memoryFile) { return false; }
+    size_t expectedSize = NUM_SUPPORTED_SENSORS * sizeof(SensorModes);
+    if(memoryFile.size() != expectedSize)
+    {
+        memoryFile.close();
+        return false;
+    }
+
+    size_t bytesRead = memoryFile.read((uint8_t*)sensor_modes, expectedSize);
+    memoryFile.close();
+    return (bytesRead == expectedSize);
 }
