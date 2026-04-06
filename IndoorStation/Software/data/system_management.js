@@ -1,3 +1,25 @@
+if(window.evtSource)
+{
+    window.evtSource.close();
+}
+window.evtSource = new EventSource(SERVER_EVENT_SOURCE);
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_PAIRED, function(event)
+{
+    console.log("Sensor paired");
+    location.reload();
+});
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_PAIRING_TIMEOUT, function(event)
+{
+    console.log("Sensor pairing timeout");
+    location.reload();
+});
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_NEW_MESSAGE, function(event)
+{
+    console.log("Sensor new message");
+    location.reload();
+});
+
+
 function bodyLoaded()
 {
 	fetch('/get_sensor_status')

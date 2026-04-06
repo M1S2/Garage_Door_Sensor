@@ -9,6 +9,27 @@ const SENSOR_MODE_CHARGING = 2;         // All messages are ignored, nothing is 
 const SENSOR_MODE_ONLY_DISPLAY = 3;     // Messages are only displayed via the LED, nothing is saved
 const SENSOR_MODE_PAIRING = 4;          // Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved
 
+if(window.evtSource)
+{
+    window.evtSource.close();
+}
+window.evtSource = new EventSource(SERVER_EVENT_SOURCE);
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_PAIRED, function(event)
+{
+    console.log("Sensor paired");
+    location.reload();
+});
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_PAIRING_TIMEOUT, function(event)
+{
+    console.log("Sensor pairing timeout");
+    location.reload();
+});
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_NEW_MESSAGE, function(event)
+{
+    console.log("Sensor new message");
+    location.reload();
+});
+
 function getSensorModeContent(sensorMode)
 {
 	switch(sensorMode)

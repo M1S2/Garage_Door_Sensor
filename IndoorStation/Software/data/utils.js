@@ -1,3 +1,10 @@
+// Shared constants
+
+const SERVER_EVENT_SOURCE =                   "/events"
+const SERVER_EVENT_SENSOR_PAIRED =            "sensorPaired"
+const SERVER_EVENT_SENSOR_PAIRING_TIMEOUT =   "sensorPairingTimeout"
+const SERVER_EVENT_SENSOR_NEW_MESSAGE =       "newSensorMessage"
+
 // Shared utility functions
 
 function getSensorColor(sensorIndex)

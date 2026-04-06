@@ -241,6 +241,8 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
 
 void initWebserverFiles()
 {
+  server.addHandler(&events);
+
    // Route for root index.html
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
   {
@@ -693,6 +695,7 @@ void loop()
   {
     // If the pairing AP timeout occurred, set all sensors that are in pairing mode back to normal mode.
     pairing_stopAllSensorsPairingMode();
+    events.send("", SERVER_EVENT_SENSOR_PAIRING_TIMEOUT, millis());
   }
 
   if(sensor_message_received)
@@ -727,8 +730,8 @@ void loop()
         {
           memory_addSensorMessage(i, sensor_messages_latest[i]);
         }
-        
-        break;  
+        events.send("", SERVER_EVENT_SENSOR_NEW_MESSAGE, millis());
+        break;
       }
     }
   }
@@ -751,6 +754,8 @@ void loop()
         }
         memory_saveSensorMacs(sensor_macs);
         pairing_disablePairingModeForSensor(sensorIndex);
+
+        events.send("", SERVER_EVENT_SENSOR_PAIRED, millis());
         break;
       }
     }

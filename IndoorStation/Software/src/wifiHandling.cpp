@@ -7,6 +7,7 @@
 #include "main.h"
 
 AsyncWebServer server(80);
+AsyncEventSource events(SERVER_EVENT_SOURCE);
 
 DNSServer dns;
 AsyncWiFiManager wifiManager(&server, &dns);

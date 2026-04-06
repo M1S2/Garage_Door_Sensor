@@ -423,6 +423,34 @@ app.get("/get_data", (req, res) =>
 
 // #########################################################################################
 
+app.get("/get_pairing_info", (req, res) => 
+{
+    const info = {
+        isPairingApActive: false
+    };
+    res.json(info);
+});
+
+// #########################################################################################
+
+app.get("/events", (req, res) =>
+{
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    console.log("SSE client connected");
+
+    req.on("close", () =>
+    {
+        console.log("SSE client disconnected");
+        res.end();
+    });
+});
+
+// #########################################################################################
+
 // provide static files in data folder
 app.use(express.static(dataPath));
 
