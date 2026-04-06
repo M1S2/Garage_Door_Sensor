@@ -10,4 +10,9 @@ bool pairing_startPairingAP();
 bool pairing_stopPairingAP();
 bool pairing_handlePairingAPTimeout();
 
+int pairing_findSensorIndexInPairingMode();
+void pairing_enablePairingModeForSensor(int sensorIndex);
+void pairing_disablePairingModeForSensor(int sensorIndex);
+void pairing_stopAllSensorsPairingMode();
+
 #endif

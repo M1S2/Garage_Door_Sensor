@@ -125,30 +125,17 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
 {
   if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
   {
-    sensor_modes[sensorIndex] = mode;
-    updateLeds_sensorStatus();
-
     if(mode == SENSOR_MODE_PAIRING)
     {
-      pairing_startPairingAP();
+      pairing_enablePairingModeForSensor(sensorIndex);
     }
     else
     {
-      pairing_stopPairingAP();
+      pairing_disablePairingModeForSensor(sensorIndex);
+      sensor_modes[sensorIndex] = mode;
     }
-  }
-}
 
-/**********************************************************************/
-
-void pairing_stopAllSensorsPairingMode()
-{
-  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
-  {
-    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
-    {
-      setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
-    }
+    updateLeds_sensorStatus();
   }
 }
 
@@ -168,17 +155,16 @@ void btnHandler_pairing_longClick(Button2& btn)
   // - if no sensor is in pairing mode, set the first sensor to pairing mode
   // - if at least one sensor is in pairing mode, set all sensors that are in pairing mode to normal mode
 
-  uint8_t numSensorInPairingMode = 0;
-  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
+  int indexFirstSensorInPairingMode = pairing_findSensorIndexInPairingMode();
+  if(indexFirstSensorInPairingMode != -1)
   {
-    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
-    {
-      setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
-      numSensorInPairingMode++;
-    }
+    // at least one sensor is in pairing mode: disable pairing mode for all sensors
+    pairing_stopAllSensorsPairingMode();
+    updateLeds_sensorStatus();
   }
-  if(numSensorInPairingMode == 0)
+  else
   {
+    // no sensor is in pairing mode: enable pairing mode for the first sensor
     setSensorMode(0, SENSOR_MODE_PAIRING);
   }
 }
@@ -189,19 +175,9 @@ void btnHandler_pairing_click(Button2& btn)
   // - if no sensor is in pairing mode, do nothing
   // - otherwise find the index of the first sensor with pairing mode. Set it to normal mode and set the next sensor to pairing mode. If it was the last sensor begin with the first again.
 
-  int indexFirstSensorInPairingMode = -1;
-  for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
-  {
-    if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
-    {
-      indexFirstSensorInPairingMode = sensorIndex;
-      break;
-    }
-  }
-
+  int indexFirstSensorInPairingMode = pairing_findSensorIndexInPairingMode();
   if(indexFirstSensorInPairingMode != -1)
   {
-    setSensorMode(indexFirstSensorInPairingMode, SENSOR_MODE_NORMAL);
     // increment to the next sensor and roll over at the last sensor.
     int indexNextSensor = indexFirstSensorInPairingMode + 1;
     if(indexNextSensor >= NUM_SENSOR_LEDS)
@@ -768,7 +744,7 @@ void loop()
           sensor_macs[sensorIndex][i] = received_mac_addr[i];
         }
         memory_saveSensorMacs(sensor_macs);
-        setSensorMode(sensorIndex, SENSOR_MODE_NORMAL);
+        pairing_disablePairingModeForSensor(sensorIndex);
         break;
       }
     }
