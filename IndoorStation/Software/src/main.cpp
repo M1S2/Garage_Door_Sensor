@@ -136,6 +136,7 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
       memory_saveSensorModes(sensor_modes);   // Only save if not in pairing mode, because pairing mode is only temporary and should not be saved persistently
     }
 
+    events.send("", SERVER_EVENT_SENSOR_MODE_CHANGED, millis());
     updateLeds_sensorStatus();
   }
 }

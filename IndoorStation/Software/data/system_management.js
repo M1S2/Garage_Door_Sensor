@@ -18,6 +18,11 @@ window.evtSource.addEventListener(SERVER_EVENT_SENSOR_NEW_MESSAGE, function(even
     console.log("Sensor new message");
     location.reload();
 });
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_MODE_CHANGED, function(event)
+{
+    console.log("Sensor mode changed");
+    location.reload();
+});
 
 
 function bodyLoaded()
@@ -81,7 +86,7 @@ function bodyLoaded()
 			uploadButton.onclick = () => fileInput.click();
 			
 			// Fill content
-			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index + 1} - KONFIGURATION`;
+			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index + 1}`;
 			modeSelectedElement.value = sensor.mode;
 			modeSelectElement.value = sensor.mode;
 			numMsgElement.textContent = sensor.numMessages;

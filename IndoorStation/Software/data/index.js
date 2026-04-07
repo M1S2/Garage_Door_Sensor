@@ -29,6 +29,12 @@ window.evtSource.addEventListener(SERVER_EVENT_SENSOR_NEW_MESSAGE, function(even
     console.log("Sensor new message");
     location.reload();
 });
+window.evtSource.addEventListener(SERVER_EVENT_SENSOR_MODE_CHANGED, function(event)
+{
+    console.log("Sensor mode changed");
+    location.reload();
+});
+
 
 function getSensorModeContent(sensorMode)
 {
