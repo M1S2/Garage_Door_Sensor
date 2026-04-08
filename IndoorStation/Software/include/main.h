@@ -5,7 +5,10 @@
 #include "config.h"
 #include "structures.h"
 
-extern SensorModes sensor_modes[NUM_SUPPORTED_SENSORS];
+/**
+ * This struct contains the system configuration. It contains e.g. the MAC addresses, modes and LMKs for all supported sensors.
+ */
+extern system_config_t sysConfig;
 
 void updateLeds_sensorStatus();
 void initWebserverFiles();

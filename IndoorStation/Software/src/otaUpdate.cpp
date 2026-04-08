@@ -1,16 +1,16 @@
 #include "otaUpdate.h"
 #include "leds.h"
 #include "memory.h"
+#include "main.h"
 
 unsigned long ota_progress_millis = 0;
 
-MacArrayStruct_t persisted_macs;
+system_config_t sysConfig_backup;
 
 void onOTAStart() 
 {
-    // Load saved sensor MACs to save after OTA again.
-    // Otherwise, the saved MACs will be overwritten by OTA update.
-    persisted_macs = memory_getSensorMacs();
+    // Backup the current system config before OTA update.
+    memcpy(&sysConfig_backup, &sysConfig, sizeof(system_config_t));
 
     LittleFS.end();
 
@@ -38,8 +38,10 @@ void onOTAEnd(bool success)
 
     if (LittleFS.begin())
     {
-        // Save sensor MACs again. They are overwritten by OTA update.
-        memory_saveSensorMacs(persisted_macs.macs);    
+        // Restore the system config after OTA update. The OTA update overwrites the whole flash, so the system config is lost.
+        // By restoring the system config, the sensor MACs and modes are preserved during OTA update.
+        memcpy(&sysConfig, &sysConfig_backup, sizeof(system_config_t));
+        memory_saveSystemConfig(sysConfig);
     }
     
     if (success)

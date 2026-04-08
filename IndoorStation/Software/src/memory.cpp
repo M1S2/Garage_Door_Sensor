@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "utils.h"
 #include <FS.h>
 #include <LittleFS.h>
 
@@ -8,11 +9,11 @@ void memory_removeAllData()
 {
     memory_removeSensorHistory(-1);
 
-    LittleFS.remove(FILENAME_SENSOR_MACS);
-    // set all MACs to all zeroes
-    uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6] = {0};
-    memory_saveSensorMacs(sensor_macs);
+    LittleFS.remove(FILENAME_PERSISTED_SYSTEM_CONFIG);
+    // The system config file will be automatically recreated with default values when the device is restarted.
 }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void memory_removeSensorHistory(int8_t sensorIndex)
 {
@@ -33,6 +34,8 @@ void memory_removeSensorHistory(int8_t sensorIndex)
     }
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 const char* memory_getMemoryUsageString()
 {
     FSInfo info;
@@ -42,6 +45,8 @@ const char* memory_getMemoryUsageString()
     snprintf(buffer, sizeof(buffer), "%d von %d Bytes belegt (%.2f %%)", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes); 
     return buffer;
 }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void memory_showMemoryContent()
 {
@@ -72,6 +77,8 @@ void memory_showMemoryContent()
     #endif
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex)
 {
     if(sensorIndex >= NUM_SUPPORTED_SENSORS)
@@ -94,6 +101,8 @@ uint16_t memory_getNumberSensorMessages(uint8_t sensorIndex)
         return 0;
     }
 }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_timestamped_t* sensorMessagesBuffer)
 {
@@ -121,6 +130,8 @@ void memory_getSensorMessagesForSensor(uint8_t sensorIndex, message_sensor_times
         memoryFile.close();
     }
 }
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sensorIndex)
 {
@@ -151,6 +162,8 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
 
 }
 
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage)
 {
     if(sensorIndex >= NUM_SUPPORTED_SENSORS)
@@ -167,46 +180,76 @@ bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t s
     return writtenSize == sizeof(message_sensor_timestamped_t);
 }
 
-void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6])
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+void memory_setDefaultSystemConfig(system_config_t& sysConfig)
 {
-    File memoryFile = LittleFS.open(FILENAME_SENSOR_MACS, "w+");
-    if(!memoryFile) { return; }
-    memoryFile.write((uint8_t*)sensor_macs, NUM_SUPPORTED_SENSORS * 6 * 1);
-	memoryFile.close();
+    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+        memset(sysConfig.sensors[i].mac, 0, sizeof(sysConfig.sensors[i].mac));
+        memset(sysConfig.sensors[i].lmk, 0, sizeof(sysConfig.sensors[i].lmk));
+        sysConfig.sensors[i].mode = SENSOR_MODE_NORMAL;
+    }
 }
 
-MacArrayStruct_t memory_getSensorMacs()
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+bool memory_saveSystemConfig(system_config_t& sysConfig)
 {
-    MacArrayStruct_t macStruct;
+    persisted_system_config_t persistedConfig;
+    persistedConfig.magic = MEMORY_PERSISTED_SYSTEM_CONFIG_MAGIC;
+    persistedConfig.system_config = sysConfig;
+    persistedConfig.crc32 = utils_calculateCRC32((uint8_t*)&persistedConfig, sizeof(persisted_system_config_t) - sizeof(persistedConfig.crc32));
 
-    File memoryFile = LittleFS.open(FILENAME_SENSOR_MACS, "r");
-    if(!memoryFile) { return macStruct; }
-    memoryFile.read((uint8_t*)macStruct.macs, NUM_SUPPORTED_SENSORS * 6 * 1);
-	memoryFile.close();
+    File memoryFile = LittleFS.open(FILENAME_PERSISTED_SYSTEM_CONFIG, "w");
+    if(!memoryFile)
+    {
+        return false;
+    }
 
-    return macStruct;
-}
+    size_t written = memoryFile.write((uint8_t*)&persistedConfig, sizeof(persisted_system_config_t));
 
-void memory_saveSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS])
-{
-    File memoryFile = LittleFS.open(FILENAME_SENSOR_MODES, "w+");
-    if(!memoryFile) { return; }
-    memoryFile.write((uint8_t*)sensor_modes, NUM_SUPPORTED_SENSORS * sizeof(SensorModes));
     memoryFile.close();
+    return (written == sizeof(persisted_system_config_t));
 }
 
-bool memory_getSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS])
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+bool memory_loadSystemConfig(system_config_t& sysConfig)
 {
-    File memoryFile = LittleFS.open(FILENAME_SENSOR_MODES, "r");
-    if(!memoryFile) { return false; }
-    size_t expectedSize = NUM_SUPPORTED_SENSORS * sizeof(SensorModes);
-    if(memoryFile.size() != expectedSize)
+    File memoryFile = LittleFS.open(FILENAME_PERSISTED_SYSTEM_CONFIG, "r");
+    if(!memoryFile)
+    {
+        return false;
+    }
+    
+    if(memoryFile.size() != sizeof(persisted_system_config_t))
     {
         memoryFile.close();
         return false;
     }
 
-    size_t bytesRead = memoryFile.read((uint8_t*)sensor_modes, expectedSize);
+    persisted_system_config_t persistedConfig;
+    size_t bytesRead = memoryFile.read((uint8_t*)&persistedConfig, sizeof(persisted_system_config_t));
+
     memoryFile.close();
-    return (bytesRead == expectedSize);
+
+    if(bytesRead != sizeof(persisted_system_config_t))
+    {
+        return false;
+    }
+    
+    if(persistedConfig.magic != MEMORY_PERSISTED_SYSTEM_CONFIG_MAGIC)
+    {
+        return false;
+    }
+    
+    uint32_t expectedCRC = utils_calculateCRC32((uint8_t*)&persistedConfig, sizeof(persisted_system_config_t) - sizeof(persistedConfig.crc32));
+    if(persistedConfig.crc32 != expectedCRC)
+    {
+        return false;
+    }
+
+    sysConfig = persistedConfig.system_config;
+    return true;
 }

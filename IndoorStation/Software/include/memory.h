@@ -6,8 +6,7 @@
 #include "structures.h"
 
 #define FILENAME_HISTORY_SENSOR_FORMAT		"/dataSensor%d.bin"
-#define FILENAME_SENSOR_MACS		        "/sensorMacs.bin"
-#define FILENAME_SENSOR_MODES		        "/sensorModes.bin"
+#define FILENAME_PERSISTED_SYSTEM_CONFIG    "/system_config.bin"
 
 /**
  * Delete all saved data files (sensor history, sensor MACs).
@@ -60,35 +59,26 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
  */
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
 
-
-typedef struct MacArrayStruct
-{
-    uint8_t macs[NUM_SUPPORTED_SENSORS][6];
-}MacArrayStruct_t;
+/**
+ * Set default values for the system config (e.g. empty MAC addresses, normal mode for all sensors).
+ * @param sysConfig The system config struct, for which the default values are set.
+ */
+void memory_setDefaultSystemConfig(system_config_t& sysConfig);
 
 /**
- * Save the given sensor MAC addresses
- * @param sensor_macs Sensor MAC addresses to save
-*/
-void memory_saveSensorMacs(uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6]);
+ * Save the system config (MAC addresses, modes and LMKs for all supported sensors) to the LittleFS.
+ * The system config is used to save the configuration across device restarts.
+ * @param sysConfig The system config struct, which is saved.
+ * @return True if the system config was successfully saved; otherwise false.
+ */
+bool memory_saveSystemConfig(system_config_t& sysConfig);
 
 /**
- * Read the saved sensor MAC addresses
- * @return Structure with internal 2D array containing the MAC addresses for all sensors
-*/
-MacArrayStruct_t memory_getSensorMacs();
-
-/**
- * Save the given sensor modes
- * @param sensor_modes Sensor modes to save
-*/
-void memory_saveSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS]);
-
-/**
- * Read the saved sensor modes
- * @param sensor_modes Output parameter to which the read sensor modes are written. Make sure, the array is large enough (NUM_SUPPORTED_SENSORS) !!!
- * @return True if sensor modes were successfully read; otherwise false
-*/
-bool memory_getSensorModes(SensorModes sensor_modes[NUM_SUPPORTED_SENSORS]);
+ * Load the system config (MAC addresses, modes and LMKs for all supported sensors) from the LittleFS.
+ * The system config is used to save the configuration across device restarts.
+ * @param sysConfig The system config struct, which is loaded.
+ * @return True if the system config was successfully loaded and is valid; otherwise false.
+ */
+bool memory_loadSystemConfig(system_config_t& sysConfig);
 
 #endif

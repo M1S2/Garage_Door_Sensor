@@ -12,6 +12,7 @@
 #include <ArduinoJson.h>
 #include <Button2.h>
 #include <Schedule.h>
+#include "main.h"
 #include "config.h"
 #include "structures.h"
 #include "leds.h"
@@ -21,11 +22,13 @@
 #include "otaUpdate.h"
 #include "memory.h"
 #include "pairing.h"
+#include "utils.h"
 #include "version.h"
 
 // To increase the FS size https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
 
-uint8_t sensor_macs[NUM_SUPPORTED_SENSORS][6];
+system_config_t sysConfig;
+
 Button2 btn_pairing, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
@@ -34,7 +37,6 @@ bool pairing_message_received = false;
 uint8_t received_mac_addr[6];
 
 message_sensor_timestamped_t sensor_messages_latest[NUM_SUPPORTED_SENSORS];
-SensorModes sensor_modes[NUM_SUPPORTED_SENSORS];
 
 File serverGetDataMemoryFile;
 int8_t serverGetDataSensorIndex;
@@ -56,7 +58,7 @@ void updateLeds_sensorStatus()
       break;
     }
 
-    switch(sensor_modes[i])
+    switch(sysConfig.sensors[i].mode)
     {
       case SENSOR_MODE_DISABLED: leds_singleOff(i); break;
       case SENSOR_MODE_CHARGING: leds_sensorCharging(i); break;
@@ -132,8 +134,8 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
     else
     {
       pairing_disablePairingModeForSensor(sensorIndex);
-      sensor_modes[sensorIndex] = mode;
-      memory_saveSensorModes(sensor_modes);   // Only save if not in pairing mode, because pairing mode is only temporary and should not be saved persistently
+      sysConfig.sensors[sensorIndex].mode = mode;
+      memory_saveSystemConfig(sysConfig);   // Only save if not in pairing mode, because pairing mode is only temporary and should not be saved persistently
     }
 
     events.send("", SERVER_EVENT_SENSOR_MODE_CHANGED, millis());
@@ -162,6 +164,7 @@ void btnHandler_pairing_longClick(Button2& btn)
   {
     // at least one sensor is in pairing mode: disable pairing mode for all sensors
     pairing_stopAllSensorsPairingMode();
+    events.send("", SERVER_EVENT_SENSOR_MODE_CHANGED, millis());
     updateLeds_sensorStatus();
   }
   else
@@ -344,11 +347,11 @@ void initWebserverFiles()
         sensor["timestamp"] = "?";
       }
       char macStr[18];
-      sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", sensor_macs[i][0], sensor_macs[i][1], sensor_macs[i][2], sensor_macs[i][3], sensor_macs[i][4], sensor_macs[i][5]);
+      sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", sysConfig.sensors[i].mac[0], sysConfig.sensors[i].mac[1], sysConfig.sensors[i].mac[2], sysConfig.sensors[i].mac[3], sysConfig.sensors[i].mac[4], sysConfig.sensors[i].mac[5]);
       sensor["mac"] = macStr;
       
       // Add management data
-      sensor["mode"] = sensor_modes[i];
+      sensor["mode"] = sysConfig.sensors[i].mode;
       sensor["numMessages"] = memory_getNumberSensorMessages(i);
       
       if(sensor_messages_latest[i].timestamp == -1)
@@ -401,7 +404,6 @@ void initWebserverFiles()
   {
     String inputMessage;
     int8_t sensorIndex = -1;
-    uint tmp_mac[6];
     if(request->hasParam("sensorIndex"))
     {
       sensorIndex = request->getParam("sensorIndex")->value().toInt();
@@ -413,14 +415,8 @@ void initWebserverFiles()
 
     if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS && !inputMessage.isEmpty())
     {
-      sscanf(inputMessage.c_str(), "%02X:%02X:%02X:%02X:%02X:%02X", &tmp_mac[0], &tmp_mac[1], &tmp_mac[2], &tmp_mac[3], &tmp_mac[4], &tmp_mac[5]);
-      for(uint8_t i = 0; i < 6; i++)
-      {
-        sensor_macs[sensorIndex][i] = tmp_mac[i];
-      }
-
-      // Save new sensor_macs
-      memory_saveSensorMacs(sensor_macs);
+      utils_parseMac(inputMessage.c_str(), sysConfig.sensors[sensorIndex].mac);
+      memory_saveSystemConfig(sysConfig);
     }
 
     request->redirect("/system_management.html");
@@ -637,17 +633,11 @@ void setup()
     return;
   }
 
-  // Load saved sensor_macs
-  memcpy(sensor_macs, memory_getSensorMacs().macs, sizeof(sensor_macs));
-
-  // Read all sensor modes from the persisted file or set them to normal on fail
-  if(!memory_getSensorModes(sensor_modes))
+  // Load system config or set defaults if not existing
+  if(!memory_loadSystemConfig(sysConfig))
   {
-    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
-    {
-        sensor_modes[i] = SENSOR_MODE_NORMAL;
-    }
-    memory_saveSensorModes(sensor_modes);
+    memory_setDefaultSystemConfig(sysConfig);
+    memory_saveSystemConfig(sysConfig);
   }
   updateLeds_sensorStatus();
 
@@ -706,15 +696,15 @@ void loop()
     #ifdef DEBUG_OUTPUT
       Serial.printf("Transmitter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
     #endif
-    for(uint i = 0; i < ARRAY_ELEMENT_COUNT(sensor_macs); i++)
+    for(uint i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {  
-      if(received_mac_addr[0] == sensor_macs[i][0] && 
-          received_mac_addr[1] == sensor_macs[i][1] &&
-          received_mac_addr[2] == sensor_macs[i][2] &&
-          received_mac_addr[3] == sensor_macs[i][3] &&
-          received_mac_addr[4] == sensor_macs[i][4] &&
-          received_mac_addr[5] == sensor_macs[i][5] &&
-          (sensor_modes[i] == SENSOR_MODE_NORMAL || sensor_modes[i] == SENSOR_MODE_ONLY_DISPLAY))
+      if(received_mac_addr[0] == sysConfig.sensors[i].mac[0] && 
+          received_mac_addr[1] == sysConfig.sensors[i].mac[1] &&
+          received_mac_addr[2] == sysConfig.sensors[i].mac[2] &&
+          received_mac_addr[3] == sysConfig.sensors[i].mac[3] &&
+          received_mac_addr[4] == sysConfig.sensors[i].mac[4] &&
+          received_mac_addr[5] == sysConfig.sensors[i].mac[5] &&
+          (sysConfig.sensors[i].mode == SENSOR_MODE_NORMAL || sysConfig.sensors[i].mode == SENSOR_MODE_ONLY_DISPLAY))
       {
         sensor_messages_latest[i].msg = sensor_message;
         time_t now;
@@ -727,7 +717,7 @@ void loop()
         
         updateLeds_sensorStatus();
 
-        if(sensor_modes[i] == SENSOR_MODE_NORMAL)
+        if(sysConfig.sensors[i].mode == SENSOR_MODE_NORMAL)
         {
           memory_addSensorMessage(i, sensor_messages_latest[i]);
         }
@@ -746,16 +736,13 @@ void loop()
 
     for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
     {
-      if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+      if(sysConfig.sensors[sensorIndex].mode == SENSOR_MODE_PAIRING)
       {
         // save the received MAC address for the sensor which is in pairing mode and reset the sensor mode back to normal
-        for(uint8_t i = 0; i < 6; i++)
-        {
-          sensor_macs[sensorIndex][i] = received_mac_addr[i];
-        }
-        memory_saveSensorMacs(sensor_macs);
-        pairing_disablePairingModeForSensor(sensorIndex);
+        memcpy(sysConfig.sensors[sensorIndex].mac, received_mac_addr, 6 * sizeof(uint8_t));
+        memory_saveSystemConfig(sysConfig);
 
+        pairing_disablePairingModeForSensor(sensorIndex);
         events.send("", SERVER_EVENT_SENSOR_PAIRED, millis());
         break;
       }

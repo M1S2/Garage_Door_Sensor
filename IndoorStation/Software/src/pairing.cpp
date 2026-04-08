@@ -1,8 +1,9 @@
 #include <ESP8266WiFi.h>
 #include "pairing.h"
-#include "main.h"
+#include "memory.h"
 #include "structures.h"
 #include "config.h"
+#include "main.h"
 
 bool pairing_isAPOpen = false;
 String pairing_ApSsid;
@@ -133,7 +134,7 @@ int pairing_findSensorIndexInPairingMode()
 {
     for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
     {
-        if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+        if(sysConfig.sensors[sensorIndex].mode == SENSOR_MODE_PAIRING)
         {
             return sensorIndex;
         }
@@ -152,8 +153,8 @@ void pairing_enablePairingModeForSensor(int sensorIndex)
         {
             pairing_disablePairingModeForSensor(indexFirstSensorInPairingMode);
         }
-        pairing_lastSensorModesBeforePairing[sensorIndex] = sensor_modes[sensorIndex];
-        sensor_modes[sensorIndex] = SENSOR_MODE_PAIRING;
+        pairing_lastSensorModesBeforePairing[sensorIndex] = sysConfig.sensors[sensorIndex].mode;
+        sysConfig.sensors[sensorIndex].mode = SENSOR_MODE_PAIRING;
         pairing_startPairingAP();
     }
 }
@@ -164,7 +165,7 @@ void pairing_disablePairingModeForSensor(int sensorIndex)
 {
     if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
     {
-        sensor_modes[sensorIndex] = pairing_lastSensorModesBeforePairing[sensorIndex];
+        sysConfig.sensors[sensorIndex].mode = pairing_lastSensorModesBeforePairing[sensorIndex];
         pairing_stopPairingAP();
     }
 }
@@ -175,7 +176,7 @@ void pairing_stopAllSensorsPairingMode()
 {
     for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
     {
-        if(sensor_modes[sensorIndex] == SENSOR_MODE_PAIRING)
+        if(sysConfig.sensors[sensorIndex].mode == SENSOR_MODE_PAIRING)
         {
             pairing_disablePairingModeForSensor(sensorIndex);
         }
