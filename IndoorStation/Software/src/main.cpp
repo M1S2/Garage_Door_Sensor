@@ -32,6 +32,7 @@ system_config_t sysConfig;
 Button2 btn_pairing, btn_reset;             // create button objects
 
 message_sensor_t sensor_message;
+message_pairing_t pairing_message;
 bool sensor_message_received = false;
 bool pairing_message_received = false;
 uint8_t received_mac_addr[6];
@@ -47,7 +48,7 @@ bool serverGetDataHasPendingMessage = false;
 
 /**********************************************************************/
 
-void updateLeds_sensorStatus()
+void main_updateLeds_sensorStatus()
 {
     for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
@@ -94,7 +95,7 @@ void updateLastSensorMessages()
         }
     }
 
-    updateLeds_sensorStatus();
+    main_updateLeds_sensorStatus();
 }
 
 /**********************************************************************/
@@ -112,12 +113,15 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
 
     if(magicNumber == PAIRING_MAGIC_NUMBER)
     {
+        memcpy(&pairing_message, data, sizeof(pairing_message));
         pairing_message_received = true;
+        sensor_message_received = false;
     }
     else
     {
         memcpy(&sensor_message, data, sizeof(sensor_message));
         sensor_message_received = true;
+        pairing_message_received = false;
     }
 }
 
@@ -139,7 +143,7 @@ void setSensorMode(uint8_t sensorIndex, SensorModes mode)
         }
 
         events.send("", SERVER_EVENT_SENSOR_MODE_CHANGED, millis());
-        updateLeds_sensorStatus();
+        main_updateLeds_sensorStatus();
     }
 }
 
@@ -165,7 +169,7 @@ void btnHandler_pairing_longClick(Button2& btn)
         // at least one sensor is in pairing mode: disable pairing mode for all sensors
         pairing_stopAllSensorsPairingMode();
         events.send("", SERVER_EVENT_SENSOR_MODE_CHANGED, millis());
-        updateLeds_sensorStatus();
+        main_updateLeds_sensorStatus();
     }
     else
     {
@@ -191,6 +195,101 @@ void btnHandler_pairing_click(Button2& btn)
         }
         setSensorMode(indexNextSensor, SENSOR_MODE_PAIRING);
     }
+}
+
+/**********************************************************************/
+
+/**
+ * Set default values for the system config (e.g. empty MAC addresses, normal mode for all sensors).
+ * @param sysConfig The system config struct, for which the default values are set.
+ */
+void main_setDefaultSystemConfig(system_config_t& sysConfig)
+{
+    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+        memset(sysConfig.sensors[i].mac, 0, sizeof(sysConfig.sensors[i].mac));
+        memset(sysConfig.sensors[i].lmk, 0, sizeof(sysConfig.sensors[i].lmk));  // set to all 0 to indicate that no LMK is set for this sensor. A valid LMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
+        sysConfig.sensors[i].mode = SENSOR_MODE_NORMAL;
+        sysConfig.sensors[i].isPaired = false;
+        sysConfig.sensors[i].useEncryption = false;
+    }
+    memset(sysConfig.pmk, 0, sizeof(sysConfig.pmk));  // set to all 0 to indicate that no PMK is set for this sensor. A valid PMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
+}
+
+/**
+ * Make sure that for all sensors encryption keys (LMK) and a PMK are set in the system config.
+ * If not, generate random keys and save them in the system config.
+ * This ensures that encryption is possible for all sensors and also prevents that empty keys are used, which are not valid for encryption.
+ * @return true if new keys were generated and saved, false if all keys were already set.
+ */
+bool main_makeSureEncryptionKeysAreSetInSystemConfig(system_config_t& sysConfig)
+{
+    bool keysGenerated = false;
+    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+        if(utils_isKeyEmpty(sysConfig.sensors[i].lmk, ESPNOW_KEY_LEN))
+        {
+            // If the sensor has an empty LMK, generate a random LMK and save it in the system config. This ensures that encryption is possible for this sensor.
+            utils_generateRandomKey(sysConfig.sensors[i].lmk, ESPNOW_KEY_LEN);
+            keysGenerated = true;
+        }
+    }
+
+    if(utils_isKeyEmpty(sysConfig.pmk, ESPNOW_KEY_LEN))
+    {
+        // If the PMK is empty, generate a random PMK and save it in the system config. This ensures that encryption is possible.
+        utils_generateRandomKey(sysConfig.pmk, ESPNOW_KEY_LEN);
+        keysGenerated = true;
+    }
+
+    if(keysGenerated)
+    {
+        // If new keys were generated, save the system config to persist the new keys in memory.
+        memory_saveSystemConfig(sysConfig);
+    }
+    return keysGenerated;
+}
+
+/**********************************************************************/
+
+/**
+ * Add an (encrypted) peer with the given MAC address and LMK.
+ * If a peer with the given MAC address already exists, it is deleted before adding the new peer.
+ * This is important to ensure that the new LMK is used for the peer, especially if they have changed.
+ * It is also important to only add a new peer with encryption in WIFI_STA mode.
+ * @param sensorConfig The sensor config struct containing the MAC address and LMK for the peer.
+ * @return true if the peer was added successfully, false otherwise.
+ */
+bool main_addPeer(sensor_config_t& sensorConfig)
+{
+    // If the peer already exists → delete it (important for channel change!)
+    if (esp_now_is_peer_exist((uint8_t*)sensorConfig.mac))
+    {
+        esp_now_del_peer((uint8_t*)sensorConfig.mac);
+    }
+
+    int result = -1;
+    if(sensorConfig.useEncryption)
+    {
+        result = esp_now_add_peer((uint8_t*)sensorConfig.mac, ESP_NOW_ROLE_SLAVE, 0, (uint8_t*)sensorConfig.lmk, ESPNOW_KEY_LEN);
+    }
+    else
+    {
+        result = esp_now_add_peer((uint8_t*)sensorConfig.mac, ESP_NOW_ROLE_SLAVE, 0, NULL, 0);
+    }
+
+    #ifdef DEBUG_OUTPUT
+        Serial.printf("addEncryptedPeer: %02X:%02X:%02X:%02X:%02X:%02X | ch=%d | res=%d\n", sensorConfig.mac[0], sensorConfig.mac[1], sensorConfig.mac[2], sensorConfig.mac[3], sensorConfig.mac[4], sensorConfig.mac[5], wiFiChannel, result);
+    #endif
+
+    if (result != 0)
+    {
+        #ifdef DEBUG_OUTPUT
+            Serial.println("ERROR: Failed to add encrypted peer!");
+        #endif
+        return false;
+    }
+    return true;
 }
 
 /**********************************************************************/
@@ -285,6 +384,8 @@ void main_initWebserverEndpoints()
             
             // Add management data
             sensor["mode"] = sysConfig.sensors[i].mode;
+            sensor["isPaired"] = sysConfig.sensors[i].isPaired;
+            sensor["useEncryption"] = sysConfig.sensors[i].useEncryption;
             sensor["numMessages"] = memory_getNumberSensorMessages(i);
             
             if(sensor_messages_latest[i].timestamp == -1)
@@ -349,7 +450,10 @@ void main_initWebserverEndpoints()
         if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS && !inputMessage.isEmpty())
         {
             utils_parseMac(inputMessage.c_str(), sysConfig.sensors[sensorIndex].mac);
+            sysConfig.sensors[sensorIndex].isPaired = true;   // If a MAC is set, we can assume that the sensor is paired.
             memory_saveSystemConfig(sysConfig);
+
+            main_addPeer(sysConfig.sensors[sensorIndex]);
         }
 
         request->redirect("/system_management.html");
@@ -525,7 +629,9 @@ void main_initWebserverEndpoints()
         if(pairing_isAPOpen)
         {
             doc["indoor_station_mac"] = WiFi.macAddress();
-            
+            doc["wifi_channel"] = WiFi.channel();
+            doc["token"] = pairing_currentToken;
+
             char pmkHex[2 * ESPNOW_KEY_LEN + 1];
             utils_bytesToHex(sysConfig.pmk, ESPNOW_KEY_LEN, pmkHex);
             doc["pmk"] = pmkHex;
@@ -541,57 +647,6 @@ void main_initWebserverEndpoints()
         serializeJson(doc, response);
         request->send(200, "application/json", response);
     });
-}
-
-/**********************************************************************/
-
-/**
- * Set default values for the system config (e.g. empty MAC addresses, normal mode for all sensors).
- * @param sysConfig The system config struct, for which the default values are set.
- */
-void main_setDefaultSystemConfig(system_config_t& sysConfig)
-{
-    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
-    {
-        memset(sysConfig.sensors[i].mac, 0, sizeof(sysConfig.sensors[i].mac));
-        memset(sysConfig.sensors[i].lmk, 0, sizeof(sysConfig.sensors[i].lmk));  // set to all 0 to indicate that no LMK is set for this sensor. A valid LMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
-        sysConfig.sensors[i].mode = SENSOR_MODE_NORMAL;
-    }
-    memset(sysConfig.pmk, 0, sizeof(sysConfig.pmk));  // set to all 0 to indicate that no PMK is set for this sensor. A valid PMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
-}
-
-/**
- * Make sure that for all sensors encryption keys (LMK) and a PMK are set in the system config.
- * If not, generate random keys and save them in the system config.
- * This ensures that encryption is possible for all sensors and also prevents that empty keys are used, which are not valid for encryption.
- * @return true if new keys were generated and saved, false if all keys were already set.
- */
-bool main_makeSureEncryptionKeysAreSetInSystemConfig(system_config_t& sysConfig)
-{
-    bool keysGenerated = false;
-    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
-    {
-        if(utils_isKeyEmpty(sysConfig.sensors[i].lmk, ESPNOW_KEY_LEN))
-        {
-            // If the sensor has an empty LMK, generate a random LMK and save it in the system config. This ensures that encryption is possible for this sensor.
-            utils_generateRandomKey(sysConfig.sensors[i].lmk, ESPNOW_KEY_LEN);
-            keysGenerated = true;
-        }
-    }
-
-    if(utils_isKeyEmpty(sysConfig.pmk, ESPNOW_KEY_LEN))
-    {
-        // If the PMK is empty, generate a random PMK and save it in the system config. This ensures that encryption is possible.
-        utils_generateRandomKey(sysConfig.pmk, ESPNOW_KEY_LEN);
-        keysGenerated = true;
-    }
-
-    if(keysGenerated)
-    {
-        // If new keys were generated, save the system config to persist the new keys in memory.
-        memory_saveSystemConfig(sysConfig);
-    }
-    return keysGenerated;
 }
 
 /**********************************************************************/
@@ -628,6 +683,8 @@ void setup()
         return;
     }
 
+    utils_initRandom();
+
     // Load system config or set defaults if not existing
     if(!memory_loadSystemConfig(sysConfig))
     {
@@ -635,7 +692,7 @@ void setup()
         memory_saveSystemConfig(sysConfig);
     }
     main_makeSureEncryptionKeysAreSetInSystemConfig(sysConfig);
-    updateLeds_sensorStatus();
+    main_updateLeds_sensorStatus();
 
     updateLastSensorMessages();
 
@@ -666,6 +723,16 @@ void setup()
     digitalWrite(LED_BUILTIN, HIGH);            // Turn off LED
     esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
     esp_now_register_recv_cb(messageReceived);
+    esp_now_set_kok(sysConfig.pmk, ESPNOW_KEY_LEN);   // set the PMK for ESP-NOW communication. The PMK is used as a common key for all peers and is required for encryption. It must be set before adding any encrypted peers.
+    
+    for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
+    {
+        sensor_config_t sensorConfig = sysConfig.sensors[i];
+        if(sensorConfig.isPaired)
+        {
+            main_addPeer(sensorConfig);
+        }
+    }
 }
 
 /**********************************************************************/
@@ -683,7 +750,7 @@ void loop()
         // If the pairing AP timeout occurred, set all sensors that are in pairing mode back to normal mode.
         pairing_stopAllSensorsPairingMode();
         events.send("", SERVER_EVENT_SENSOR_PAIRING_TIMEOUT, millis());
-        updateLeds_sensorStatus();
+        main_updateLeds_sensorStatus();
     }
 
     if(sensor_message_received)
@@ -712,7 +779,7 @@ void loop()
                 #endif
                 timeHandling_printSerial(now);
               
-                updateLeds_sensorStatus();
+                main_updateLeds_sensorStatus();
 
                 if(sysConfig.sensors[i].mode == SENSOR_MODE_NORMAL)
                 {
@@ -731,15 +798,39 @@ void loop()
             Serial.printf("Pairing message from MAC Address: %02X:%02X:%02X:%02X:%02X:%02X \n\r", received_mac_addr[0], received_mac_addr[1], received_mac_addr[2], received_mac_addr[3], received_mac_addr[4], received_mac_addr[5]);
         #endif
 
+        // Check if the received MAC address matches the sensorMac in the pairing message payload. If not, ignore the message.
+        // This prevents that random pairing messages from other devices are processed, which could cause issues (e.g. if the sender MAC matches a sensor that is currently in pairing mode, but the sender is not the actual sensor trying to pair).
+        if(memcmp(received_mac_addr, pairing_message.sensorMac, sizeof(received_mac_addr)) != 0)
+        {
+            // The sender MAC does not match the sensorMac in the payload, ignore the message.
+            #ifdef DEBUG_OUTPUT
+                Serial.println("Pairing message ignored: sender MAC does not match sensorMac in payload.");
+            #endif
+            return;
+        }
+        if(pairing_message.pairingToken != pairing_currentToken)
+        {
+            // The token in the payload does not match the current pairing token, ignore the message. This prevents that old pairing messages are processed, which could cause issues (e.g. if the sender is an old sensor that was in pairing mode before but is now trying to pair again, the old message with the old token could be received after the new token is generated and processed, which would cause that the new sensor is paired with the old message).
+            #ifdef DEBUG_OUTPUT
+                Serial.println("Pairing message ignored: token in payload does not match current pairing token.");
+            #endif
+            return;
+        }
+
         for(int sensorIndex = 0; sensorIndex < NUM_SUPPORTED_SENSORS; sensorIndex++)
         {
             if(sysConfig.sensors[sensorIndex].mode == SENSOR_MODE_PAIRING)
             {
                 // save the received MAC address for the sensor which is in pairing mode and reset the sensor mode back to normal
                 memcpy(sysConfig.sensors[sensorIndex].mac, received_mac_addr, 6 * sizeof(uint8_t));
+                sysConfig.sensors[sensorIndex].isPaired = true;
+                sysConfig.sensors[sensorIndex].useEncryption = true;
                 memory_saveSystemConfig(sysConfig);
 
                 pairing_disablePairingModeForSensor(sensorIndex);
+
+                main_addPeer(sysConfig.sensors[sensorIndex]);
+
                 events.send("", SERVER_EVENT_SENSOR_PAIRED, millis());
                 break;
             }

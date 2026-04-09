@@ -13,9 +13,9 @@ uint8_t const wifi_channel_order[] = { 1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13
 #define ADC_RESISTOR_R9     100.0f  // Resistor value in kOhm, from the ADC input to GND
 
 #define PAIRING_AP_NAME_BASE            "GaragenTorPairing-"        // Base name for the pairing access point (should be the same as in the indoor station software to find the correct AP)
-#define PAIRING_AP_PW                   ""                          // Password for the pairing access point (should be the same as in the indoor station software)
+#define PAIRING_AP_PW                   "Pa1rng#PW"                 // Password for the pairing access point (should be the same as in the indoor station software)
 #define PAIRING_CONNECT_TIMEOUT_MS      15000                       // Timeout for connecting to the pairing access point in milliseconds
 
-//#define DEBUG_OUTPUT                                      // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save power)
+#define DEBUG_OUTPUT                                      // enable this define to print debugging output on the serial. If this is disabled, no serial output is used at all (to save power)
 
 #endif

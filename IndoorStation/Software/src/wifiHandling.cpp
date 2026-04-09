@@ -64,7 +64,7 @@ void wifiHandling_wifiManagerSaveCB()
     wifiConfig_isAPOpen = false;
     WiFi.softAPdisconnect(true);
     WiFi.persistent(false);
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_STA);            // IMPORTANT: set this to STA only (no AP, Encryption seems not to work with WIFI_AP_STA mode)
     WiFi.begin();
 
     #ifdef DEBUG_OUTPUT

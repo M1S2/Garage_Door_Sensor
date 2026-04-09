@@ -7,6 +7,7 @@
 
 bool pairing_isAPOpen = false;
 String pairing_ApSsid;
+uint32_t pairing_currentToken = 0;
 
 unsigned long pairing_APStartedAt = 0;
 
@@ -29,7 +30,7 @@ bool pairing_startPairingAP()
         Serial.println("[PairingAP] Start Pairing Access Point...");
     #endif
 
-    // Make sure, AP is supported
+    // Make sure, AP is supported. Caution: No encryption is possible in WIFI_AP_STA mode, so reset this mode to WIFI_STA after pairing.
     WiFi.mode(WIFI_AP_STA);
 
     bool apStarted = false;
@@ -52,6 +53,7 @@ bool pairing_startPairingAP()
 
     pairing_isAPOpen = true;
     pairing_APStartedAt = millis();
+    pairing_currentToken = random(0xFFFFFFFF);   // generate a random token for the current pairing session. This token is used to ensure that only messages from the current pairing session are processed, and old messages from previous pairing sessions are ignored.
 
     #ifdef DEBUG_OUTPUT
         delay(100);    // delay a bit to ensure that the AP is fully started before printing the info
@@ -103,8 +105,12 @@ bool pairing_stopPairingAP()
         #endif
     }
 
+    // Make sure, AP is disabled. Caution: Encryption is only possible in WIFI_STA mode.
+    WiFi.mode(WIFI_STA);
+
     pairing_isAPOpen = false;
     pairing_APStartedAt = 0;
+    pairing_currentToken = 0;
 
     #ifdef DEBUG_OUTPUT
         Serial.println("[PairingAP] SoftAP stopped.");

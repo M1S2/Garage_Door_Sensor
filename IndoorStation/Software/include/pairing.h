@@ -5,6 +5,7 @@
 
 extern bool pairing_isAPOpen;
 extern String pairing_ApSsid;
+extern uint32_t pairing_currentToken;
 
 bool pairing_startPairingAP();
 bool pairing_stopPairingAP();

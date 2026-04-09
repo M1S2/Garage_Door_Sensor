@@ -16,7 +16,7 @@
 #define CONFIGURATION_AP_PW     ""                        // Password for the configuration access point
 
 #define PAIRING_AP_NAME_BASE    "GaragenTorPairing-"      // Base name for the pairing access point (it is appended by the chip id to make it unique)
-#define PAIRING_AP_PW           ""                        // Password for the pairing access point
+#define PAIRING_AP_PW           "Pa1rng#PW"               // Password for the pairing access point
 #define PAIRING_AP_TIMEOUT_MS   60000                     // Timeout in ms for the pairing access point. Use 0 to disable the timeout and keep the AP active until it is manually stopped.
 
 // https://forum.arduino.cc/t/finding-the-size-of-multi-dimensional-array/395465/8

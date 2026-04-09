@@ -7,6 +7,8 @@
 #include "config.h"
 
 pairing_info_t PairingInfo;
+uint8_t pairing_last_wifi_channel;
+uint32_t pairing_token;
 
 String pairing_findPairingAP()
 {
@@ -175,7 +177,7 @@ bool pairing_fetchPairingInfo(pairing_info_t& pairingInfo)
         Serial.print("[Pairing] answer:");
         Serial.println(payload);
     #endif
-    DynamicJsonDocument doc(256);
+    DynamicJsonDocument doc(1024);
     DeserializationError error = deserializeJson(doc, payload);
     if (error)
     {
@@ -186,7 +188,7 @@ bool pairing_fetchPairingInfo(pairing_info_t& pairingInfo)
         return false;
     }
 
-    if (!doc.containsKey("indoor_station_mac"))
+    if (!doc.containsKey("indoor_station_mac") || !doc.containsKey("pmk") || !doc.containsKey("lmk") || !doc.containsKey("wifi_channel") || !doc.containsKey("token"))
     {
         #ifdef DEBUG_OUTPUT
             Serial.println("[Pairing] JSON doesn't contain all required fields.");
@@ -195,7 +197,7 @@ bool pairing_fetchPairingInfo(pairing_info_t& pairingInfo)
     }
 
     String macStr = doc["indoor_station_mac"].as<String>();
-    if (!parseMacAddress(macStr, pairingInfo.indoor_station_mac))
+    if (!utils_parseMacAddress(macStr, pairingInfo.indoor_station_mac))
     {
         #ifdef DEBUG_OUTPUT
             Serial.print("[Pairing] Invalid MAC format: ");
@@ -204,12 +206,35 @@ bool pairing_fetchPairingInfo(pairing_info_t& pairingInfo)
         return false;
     }
 
+    String pmkStr = doc["pmk"].as<String>();
+    String lmkStr = doc["lmk"].as<String>();
+    if(!utils_hexToBytes(pmkStr.c_str(), pairingInfo.pmk, ESPNOW_KEY_LEN))
+    {
+        #ifdef DEBUG_OUTPUT
+            Serial.print("[Pairing] Invalid PMK format: ");
+            Serial.println(pmkStr);
+        #endif
+        return false;
+    }
+    if(!utils_hexToBytes(lmkStr.c_str(), pairingInfo.lmk, ESPNOW_KEY_LEN))
+    {
+        #ifdef DEBUG_OUTPUT
+            Serial.print("[Pairing] Invalid LMK format: ");
+            Serial.println(lmkStr);
+        #endif
+        return false;
+    }
+
+    pairing_last_wifi_channel = doc["wifi_channel"].as<uint8_t>();
+    pairing_token = doc["token"].as<uint32_t>();
+
     pairingInfo.magic = PAIRING_MAGIC_NUMBER;
 
     #ifdef DEBUG_OUTPUT
         Serial.println("[Pairing] Pairing-Info successfully read:");
         Serial.println("[Pairing] Server MAC: ");
-        printMac(pairingInfo.indoor_station_mac);
+        utils_printMac(pairingInfo.indoor_station_mac);
+        Serial.println();
     #endif
     return true;
 }
@@ -242,7 +267,7 @@ bool pairing_runPairing()
 
 uint32_t pairing_calculatePairingInfoCRC(const pairing_info_t& info)
 {
-    return calculateCRC32(reinterpret_cast<const uint8_t*>(&info), sizeof(pairing_info_t) - sizeof(info.crc32));
+    return utils_calculateCRC32(reinterpret_cast<const uint8_t*>(&info), sizeof(pairing_info_t) - sizeof(info.crc32));
 }
 
 /**********************************************************************/

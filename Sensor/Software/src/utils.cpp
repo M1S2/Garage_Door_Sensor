@@ -1,6 +1,6 @@
 #include "utils.h"
 
-bool parseMacAddress(const String& macStr, uint8_t* mac)
+bool utils_parseMacAddress(const String& macStr, uint8_t* mac)
 {
     int values[6];
 
@@ -21,7 +21,7 @@ bool parseMacAddress(const String& macStr, uint8_t* mac)
 
 /**********************************************************************/
 
-void printMac(const uint8_t* mac)
+void utils_printMac(const uint8_t* mac)
 {
     for (int i = 0; i < 6; i++)
     {
@@ -33,26 +33,64 @@ void printMac(const uint8_t* mac)
 
 /**********************************************************************/
 
-uint32_t calculateCRC32(const uint8_t* data, size_t length)
+uint32_t utils_calculateCRC32(const uint8_t* data, size_t length)
 {
-  uint32_t crc = 0xFFFFFFFF;
+    uint32_t crc = 0xFFFFFFFF;
 
-  while (length--)
-  {
-    uint8_t c = *data++;
-    for (uint8_t i = 0; i < 8; i++)
+    while (length--)
     {
-      bool bit = crc & 0x80000000;
-      if (c & 0x80)
-        bit = !bit;
+        uint8_t c = *data++;
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            bool bit = crc & 0x80000000;
+            if (c & 0x80)
+                bit = !bit;
 
-      crc <<= 1;
-      c <<= 1;
+            crc <<= 1;
+            c <<= 1;
 
-      if (bit)
-        crc ^= 0x04C11DB7;
+            if (bit)
+                crc ^= 0x04C11DB7;
+        }
     }
-  }
 
-  return crc;
+    return crc;
+}
+
+/**********************************************************************/
+
+bool utils_isKeyEmpty(const uint8_t* key, size_t len)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+        if (key[i] != 0x00)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**********************************************************************/
+
+void utils_bytesToHex(const uint8_t* data, size_t len, char* out)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+        sprintf(&out[i * 2], "%02X", data[i]);
+    }
+    out[len * 2] = '\0';
+}
+
+/**********************************************************************/
+
+bool utils_hexToBytes(const char* hex, uint8_t* out, size_t len)
+{
+    if (strlen(hex) != len * 2) return false;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        sscanf(&hex[i * 2], "%2hhX", &out[i]);
+    }
+    return true;
 }
