@@ -60,12 +60,6 @@ message_sensor_timestamped_t memory_getLatestSensorMessagesForSensor(uint8_t sen
 bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t sensorMessage);
 
 /**
- * Set default values for the system config (e.g. empty MAC addresses, normal mode for all sensors).
- * @param sysConfig The system config struct, for which the default values are set.
- */
-void memory_setDefaultSystemConfig(system_config_t& sysConfig);
-
-/**
  * Save the system config (MAC addresses, modes and LMKs for all supported sensors) to the LittleFS.
  * The system config is used to save the configuration across device restarts.
  * @param sysConfig The system config struct, which is saved.

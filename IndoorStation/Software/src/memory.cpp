@@ -182,18 +182,6 @@ bool memory_addSensorMessage(uint8_t sensorIndex, message_sensor_timestamped_t s
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-void memory_setDefaultSystemConfig(system_config_t& sysConfig)
-{
-    for(uint8_t i = 0; i < NUM_SUPPORTED_SENSORS; i++)
-    {
-        memset(sysConfig.sensors[i].mac, 0, sizeof(sysConfig.sensors[i].mac));
-        memset(sysConfig.sensors[i].lmk, 0, sizeof(sysConfig.sensors[i].lmk));
-        sysConfig.sensors[i].mode = SENSOR_MODE_NORMAL;
-    }
-}
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-
 bool memory_saveSystemConfig(system_config_t& sysConfig)
 {
     persisted_system_config_t persistedConfig;

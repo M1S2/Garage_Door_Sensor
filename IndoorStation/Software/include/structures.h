@@ -2,6 +2,7 @@
 #define STRUCTURES_H
 
 #include <Arduino.h>
+#include "utils.h"
 
 // Packing of this structure reduces the size to 4 bytes
 typedef struct __attribute__((packed)) message_sensor
@@ -35,13 +36,13 @@ typedef struct sensor_config
 {
     uint8_t mac[6] = {0};
     SensorModes mode = SENSOR_MODE_NORMAL;
-    uint8_t lmk[16] = {0};
+    uint8_t lmk[ESPNOW_KEY_LEN] = {0};
 } sensor_config_t;
 
 typedef struct system_config
 {
     sensor_config_t sensors[NUM_SUPPORTED_SENSORS];
-    uint8_t pmk[16] = {0};
+    uint8_t pmk[ESPNOW_KEY_LEN] = {0};
 } system_config_t;
 
 #define MEMORY_PERSISTED_SYSTEM_CONFIG_MAGIC   0x53434647UL  // "SCFG"
