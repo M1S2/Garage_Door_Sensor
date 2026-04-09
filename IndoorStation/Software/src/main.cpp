@@ -243,75 +243,8 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uin
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-void initWebserverFiles()
+void main_initWebserverEndpoints()
 {
-  server.addHandler(&events);
-
-   // Route for root index.html
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.html", "text/html", false); 
-  });
-  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.html", "text/html", false); 
-  });
-
-  // Route for root sensor_history.html
-  server.on("/sensor_history.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/sensor_history.html", "text/html", false); 
-  });
-
-  // Route for root system_management.html
-  server.on("/system_management.html", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/system_management.html", "text/html", false); 
-  });
-
-  // Route for root style.css
-  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/style.css", "text/css"); 
-  });
-
-  // Route for root utils.js
-  server.on("/utils.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/utils.js", "text/javascript"); 
-  });
-
-  // Route for root index.js
-  server.on("/index.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/index.js", "text/javascript"); 
-  });
-
-  // Route for root sensor_history.js
-  server.on("/sensor_history.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/sensor_history.js", "text/javascript"); 
-  });
-
-  // Route for root system_management.js
-  server.on("/system_management.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/system_management.js", "text/javascript"); 
-  });
-
-  // Route for root version.js
-  server.on("/version.js", HTTP_GET, [](AsyncWebServerRequest *request)
-  {
-    request->send(LittleFS, "/version.js", "text/javascript"); 
-  });
-
-  server.onNotFound([](AsyncWebServerRequest *request)
-  {
-    request->send(404, "text/plain", "Not found");
-  });
-
-  // ----------------------------------
-
   server.on("/num_sensors", HTTP_GET, [](AsyncWebServerRequest *request)
   {
 	  request->send(200, "text/plain", String(NUM_SUPPORTED_SENSORS));

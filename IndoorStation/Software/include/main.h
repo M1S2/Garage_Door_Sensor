@@ -11,7 +11,7 @@
 extern system_config_t sysConfig;
 
 void updateLeds_sensorStatus();
-void initWebserverFiles();
+void main_initWebserverEndpoints();
 void setSensorMode(uint8_t sensorIndex, SensorModes mode);
 
 #endif

@@ -28,6 +28,18 @@ void wifiHandling_eraseCredentials()
     #endif
 }
 
+void wifiHandling_initWebserverFiles()
+{
+    server.addHandler(&events);
+
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+
+    server.onNotFound([](AsyncWebServerRequest *request)
+    {
+        request->send(404, "text/plain", "Not found");
+    });
+}
+
 void onWifiConnect(const WiFiEventStationModeGotIP& event) 
 {
   // https://github.com/esp8266/Arduino/issues/5722
@@ -66,7 +78,8 @@ void wifiHandling_wifiManagerSaveCB()
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true);
 
-    initWebserverFiles();
+    wifiHandling_initWebserverFiles();
+    main_initWebserverEndpoints();
     otaUpdate_init(&server);
 
     // start webserver
