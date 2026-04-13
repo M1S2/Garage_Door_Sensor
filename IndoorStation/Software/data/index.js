@@ -73,6 +73,7 @@ function bodyLoaded()
 			
 			// Update all element IDs from sensorX_* to sensorN_*
 			const titleElement = templateClone.querySelector('#sensor_X_title');
+			const nameElement = templateClone.querySelector('#sensor_X_name');
 			const statusSubTitleElement = templateClone.querySelector('#sensor_X_status_subTitle');
 			const statusElement = templateClone.querySelector('#sensor_X_status');
 			const batterySubTitleElement = templateClone.querySelector('#sensor_X_battery_subTitle');
@@ -82,6 +83,7 @@ function bodyLoaded()
 			const errorDivElement = templateClone.querySelector('#sensor_X_error');
 			const macElement = templateClone.querySelector('#sensor_X_mac');
 			titleElement.id = `sensor_${sensor.index}_title`;
+			nameElement.id = `sensor_${sensor.index}_name`;
 			statusElement.id = `sensor_${sensor.index}_status`;
 			percentageElement.id = `sensor_${sensor.index}_percentage`;
 			voltageElement.id = `sensor_${sensor.index}_voltage`;
@@ -90,6 +92,7 @@ function bodyLoaded()
 			macElement.id = `sensor_${sensor.index}_mac`;
 			
 			titleElement.textContent = `#${sensor.index + 1}`;
+			nameElement.textContent = sensor.name || "";
 
 			// Check if sensor is in special mode
 			let modeContent = getSensorModeContent(sensor.mode);
@@ -113,7 +116,7 @@ function bodyLoaded()
 				const modeDiv = document.createElement('div');
 				modeDiv.innerHTML = modeContent;
 				modeDiv.className = 'sensor-mode-content';
-				titleElement.parentNode.insertBefore(modeDiv, titleElement.nextSibling);
+				nameElement.parentNode.insertBefore(modeDiv, nameElement.nextSibling);
 			}
 			else
 			{

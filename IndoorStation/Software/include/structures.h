@@ -34,6 +34,7 @@ enum SensorModes
 
 typedef struct sensor_config
 {
+    char name[64] = {0};
     uint8_t mac[6] = {0};
     SensorModes mode = SENSOR_MODE_NORMAL;
     uint8_t lmk[ESPNOW_KEY_LEN] = {0};

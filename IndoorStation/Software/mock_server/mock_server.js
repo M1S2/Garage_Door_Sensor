@@ -28,6 +28,10 @@ let sensorMACs = [];
 for (let i = 0; i < NUM_SUPPORTED_SENSORS; i++) {
     sensorMACs.push(`AA:BB:CC:DD:EE:${(i + 1).toString(16).toUpperCase().padStart(2, '0')}`);
 }
+let sensorNames = [];
+for (let i = 0; i < NUM_SUPPORTED_SENSORS; i++) {
+    sensorNames.push(`Sensor ${(i + 1).toString()}`);
+}
 // Set specific modes for testing
 sensorModes[0] = SENSOR_MODE_CHARGING;
 sensorMACs[0] = "00:00:00:00:00:00";
@@ -222,6 +226,7 @@ app.get("/get_sensor_status", (req, res) =>
 
         const sensor = {
             index: i,
+            name: sensorNames[i],
             mac: sensorMACs[i],
             // Status data
             state: pinState,
@@ -280,6 +285,17 @@ app.get("/set_mac_sensor", (req, res) =>
     const mac = req.query.mac;
 
     sensorMACs[sensorIndex] = mac;
+    res.redirect("/system_management.html");
+});
+
+// #########################################################################################
+
+app.get("/set_sensor_name", (req, res) => 
+{
+    const sensorIndex = parseInt(req.query.sensorIndex);
+    const name = req.query.name;
+
+    sensorNames[sensorIndex] = name;
     res.redirect("/system_management.html");
 });
 

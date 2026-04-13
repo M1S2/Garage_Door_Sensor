@@ -1,4 +1,5 @@
 let Num_Sensors = 0;	// Will be loaded from /num_sensors endpoint
+let sensorsMetadata = [];
 var chart_accu;
 var chart_pinState;
 
@@ -7,14 +8,16 @@ async function bodyLoaded()
 	// Load the number of supported sensors from the backend
 	try
 	{
-		const response = await fetch('/num_sensors');
+		const response = await fetch('/get_sensor_status');
 		const data = await response.json();
-		Num_Sensors = data;
+		sensorsMetadata = data.sensors;
+		Num_Sensors = sensorsMetadata.length;
 	}
 	catch(error)
 	{
-		console.error("Error loading num_sensors:", error);
+		console.error("Error loading sensor status:", error);
 		Num_Sensors = 2;	// Fallback to default
+		sensorsMetadata = Array.from({length: Num_Sensors}, (_, i) => ({index: i, name: `Sensor #${i+1}`}));
 	}
 
 	// Initialize charts with the correct number of sensors
@@ -466,33 +469,33 @@ Highcharts.setOptions(
 function createAccuSeries()
 {
 	const series = [];
-	for (let i = 1; i <= Num_Sensors; i++)
+	sensorsMetadata.forEach(sensor =>
 	{
 		series.push({
-			name: `Sensor #${i}`,
+			name: `#${sensor.index}: ${sensor.name || 'Sensor'}`,
 			data: [],
-			color: style.getPropertyValue(`--sensor${i}-color`)
+			color: style.getPropertyValue(`--sensor${(sensor.index % 8) + 1}-color`)
 		});
-	}
+	});
 	return series;
 }
 
 function createPinStateSeries()
 {
 	const series = [];
-	for (let i = 1; i <= Num_Sensors; i++)
+	sensorsMetadata.forEach(sensor =>
 	{
 		series.push({
-			name: `Sensor #${i}`,
+			name: `#${sensor.index}: ${sensor.name || 'Sensor'}`,
 			data: [],
-			color: style.getPropertyValue(`--sensor${i}-color`),
+			color: style.getPropertyValue(`--sensor${(sensor.index % 8) + 1}-color`),
 			step: 'left',
 			dataGrouping:
 			{
 				enabled: false
 			}
 		});
-	}
+	});
 	return series;
 }
 

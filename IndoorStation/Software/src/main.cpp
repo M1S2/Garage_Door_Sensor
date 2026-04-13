@@ -212,6 +212,7 @@ void main_setDefaultSystemConfig(system_config_t& sysConfig)
         sysConfig.sensors[i].mode = SENSOR_MODE_NORMAL;
         sysConfig.sensors[i].isPaired = false;
         sysConfig.sensors[i].useEncryption = false;
+        memset(sysConfig.sensors[i].name, 0, sizeof(sysConfig.sensors[i].name));
     }
     memset(sysConfig.pmk, 0, sizeof(sysConfig.pmk));  // set to all 0 to indicate that no PMK is set for this sensor. A valid PMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
 }
@@ -381,6 +382,7 @@ void main_initWebserverEndpoints()
             char macStr[18];
             sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", sysConfig.sensors[i].mac[0], sysConfig.sensors[i].mac[1], sysConfig.sensors[i].mac[2], sysConfig.sensors[i].mac[3], sysConfig.sensors[i].mac[4], sysConfig.sensors[i].mac[5]);
             sensor["mac"] = macStr;
+            sensor["name"] = sysConfig.sensors[i].name;
             
             // Add management data
             sensor["mode"] = sysConfig.sensors[i].mode;
@@ -430,6 +432,30 @@ void main_initWebserverEndpoints()
         strftime(timeBuf, sizeof(timeBuf), "%d.%m.%Y %H:%M:%S", &tm_struct);
 
         request->send(200, "text/plain", String(timeBuf));
+    });
+
+    // ----------------------------------
+
+    server.on("/set_sensor_name", HTTP_GET, [] (AsyncWebServerRequest *request)
+    {
+        int8_t sensorIndex = -1;
+        String name;
+        if(request->hasParam("sensorIndex"))
+        {
+            sensorIndex = request->getParam("sensorIndex")->value().toInt();
+        }
+        if(request->hasParam("name"))
+        {
+            name = request->getParam("name")->value();
+        }
+
+        if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+        {
+            strncpy(sysConfig.sensors[sensorIndex].name, name.c_str(), sizeof(sysConfig.sensors[sensorIndex].name) - 1);
+            sysConfig.sensors[sensorIndex].name[sizeof(sysConfig.sensors[sensorIndex].name) - 1] = '\0';
+            memory_saveSystemConfig(sysConfig);
+        }
+        request->redirect("/system_management.html");
     });
 
     // ----------------------------------

@@ -26,6 +26,16 @@
 				<template id="sensor-management-card-template">
 					<div class="card sensorX">
 						<h2 id="sensor_X_title"></h2>
+						<form action="/set_sensor_name" class="sensor-name-container">
+							<input type="hidden" name="sensorIndex" value="X">
+							<input type="text" name="name" id="sensor_X_name" class="sensor-name-input" readonly placeholder="Sensor Name">
+							<button type="button" class="icon-button" id="sensor_X_name_edit_btn" title="Namen bearbeiten">
+								<i class="material-symbols-outlined">edit</i>
+							</button>
+							<button type="submit" class="icon-button" id="sensor_X_name_save_btn" title="Speichern" style="display:none">
+								<i class="material-symbols-outlined">check</i>
+							</button>
+						</form>	
 						<h4><i class="material-symbols-outlined">tune</i> SENSOR MODUS</h4>
 						<form action="/set_sensor_mode" method="GET">
 							<input type="hidden" name="sensorIndex" value="X">

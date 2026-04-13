@@ -51,6 +51,9 @@ function bodyLoaded()
 			
 			// Update all element IDs from sensorX_* to sensorN_*
 			const titleElement = templateClone.querySelector('#sensor_X_title');
+			const nameElement = templateClone.querySelector('#sensor_X_name');
+			const nameEditBtn = templateClone.querySelector('#sensor_X_name_edit_btn');
+			const nameSaveBtn = templateClone.querySelector('#sensor_X_name_save_btn');
 			const modeSelectElement = templateClone.querySelector('#sensor_X_mode');
 			const modeSelectedElement = templateClone.querySelector('#sensor_X_mode_selectedIndex');
 			const numMsgElement = templateClone.querySelector('#sensor_X_num_msg');
@@ -58,6 +61,9 @@ function bodyLoaded()
 			const macInputElement = templateClone.querySelector('#sensor_X_mac');
 			
 			titleElement.id = `sensor_${sensor.index}_title`;
+			nameElement.id = `sensor_${sensor.index}_name`;
+			nameEditBtn.id = `sensor_${sensor.index}_name_edit_btn`;
+			nameSaveBtn.id = `sensor_${sensor.index}_name_save_btn`;
 			modeSelectElement.id = `sensor_mode_${sensor.index}`;
 			modeSelectedElement.id = `sensor_mode_selectedIndex_${sensor.index}`;
 			numMsgElement.id = `num_msg_${sensor.index}`;
@@ -65,6 +71,9 @@ function bodyLoaded()
 			macInputElement.id = `mac_sensor_${sensor.index}`;
 			
 			// Update form action sensorIndex
+			const nameForm = templateClone.querySelector('form[action="/set_sensor_name"]');
+			nameForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
+
 			const modeForm = templateClone.querySelector('form[action="/set_sensor_mode"]');
 			modeForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
@@ -85,8 +94,12 @@ function bodyLoaded()
 			const uploadButton = uploadForm.querySelector('button');
 			uploadButton.onclick = () => fileInput.click();
 			
+			// Handle Name Edit Buttons
+			nameEditBtn.onclick = () => enableNameEdit(sensor.index);
+
 			// Fill content
-			titleElement.innerHTML = `<i class="material-symbols-outlined">settings</i> #${sensor.index + 1}`;
+			titleElement.textContent = `#${sensor.index + 1}`;
+			nameElement.value = sensor.name || "";
 			modeSelectedElement.value = sensor.mode;
 			modeSelectElement.value = sensor.mode;
 			numMsgElement.textContent = sensor.numMessages;
@@ -204,4 +217,16 @@ function format_macs(e)
 		}
 		e.currentTarget.value = macs.join('').substring(0,17);
 	}
+}
+
+function enableNameEdit(index)
+{
+    const input = document.getElementById('sensor_' + index + '_name');
+    const editBtn = document.getElementById('sensor_' + index + '_name_edit_btn');
+    const saveBtn = document.getElementById('sensor_' + index + '_name_save_btn');
+    
+    input.readOnly = false;
+    input.focus(); 		// Set focus to directly enable typing
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-block';
 }
