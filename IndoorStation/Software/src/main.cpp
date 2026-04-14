@@ -411,9 +411,9 @@ void main_initWebserverEndpoints()
     server.on("/get_indoor_station_info", HTTP_GET, [](AsyncWebServerRequest *request)
     {
         DynamicJsonDocument doc(256);
-        doc["mac"] = WiFi.macAddress();
+        //doc["mac"] = WiFi.macAddress();
         doc["swVersion"] = GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
-        doc["memoryUsage"] = memory_getMemoryUsageString();
+        doc["memoryUsage"] = memory_getMemoryUsageString(true);
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response);

@@ -36,13 +36,21 @@ void memory_removeSensorHistory(int8_t sensorIndex)
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-const char* memory_getMemoryUsageString()
+const char* memory_getMemoryUsageString(bool shortFormat)
 {
     FSInfo info;
     LittleFS.info(info);
 
+    float percentage = (info.usedBytes * 100.0f) / info.totalBytes;
     static char buffer[100];
-    snprintf(buffer, sizeof(buffer), "%d von %d Bytes belegt (%.2f %%)", info.usedBytes, info.totalBytes, (info.usedBytes * 100.0f) / info.totalBytes); 
+    if(shortFormat)
+    {
+        snprintf(buffer, sizeof(buffer), "%.2f %%", percentage);
+    }
+    else
+    {
+        snprintf(buffer, sizeof(buffer), "%d von %d Bytes belegt (%.2f %%)", info.usedBytes, info.totalBytes, percentage); 
+    }
     return buffer;
 }
 

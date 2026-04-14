@@ -250,7 +250,7 @@ app.get("/get_indoor_station_info", (req, res) =>
     const info = {
         mac: "01:02:03:04:05:06",
         swVersion: "v0.0",
-        memoryUsage: "100000 von 1024000 Bytes belegt (9.77 %)"
+        memoryUsage: "9.77 %"
     };
     res.json(info);
 });

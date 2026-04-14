@@ -143,7 +143,6 @@ function bodyLoaded()
 	.then(response => response.json())
 	.then(data =>
 	{
-		document.getElementById("indoor_station_mac").textContent = data.mac;
 		document.getElementById("indoor_station_sw_version").textContent = data.swVersion;
 		document.getElementById("indoor_station_memory_usage").textContent = data.memoryUsage;
 	})
