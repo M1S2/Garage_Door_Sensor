@@ -474,7 +474,11 @@ function createAccuSeries()
 		series.push({
 			name: `#${sensor.index}: ${sensor.name || 'Sensor'}`,
 			data: [],
-			color: style.getPropertyValue(`--sensor${(sensor.index % 8) + 1}-color`)
+			color: style.getPropertyValue(`--sensor${(sensor.index % 8) + 1}-color`),
+			dataGrouping:
+			{
+				enabled: false
+			}
 		});
 	});
 	return series;

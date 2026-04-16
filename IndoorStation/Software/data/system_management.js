@@ -58,6 +58,8 @@ function bodyLoaded()
 			const modeSelectedElement = templateClone.querySelector('#sensor_X_mode_selectedIndex');
 			const numMsgElement = templateClone.querySelector('#sensor_X_num_msg');
 			const swVersionElement = templateClone.querySelector('#sensor_X_sw_version');
+			const isPairedElement = templateClone.querySelector('#sensor_X_isPaired');
+			const useEncryptionElement = templateClone.querySelector('#sensor_X_useEncryption');
 			const macInputElement = templateClone.querySelector('#sensor_X_mac');
 			
 			titleElement.id = `sensor_${sensor.index}_title`;
@@ -68,6 +70,8 @@ function bodyLoaded()
 			modeSelectedElement.id = `sensor_mode_selectedIndex_${sensor.index}`;
 			numMsgElement.id = `num_msg_${sensor.index}`;
 			swVersionElement.id = `sensor_${sensor.index}_sw_version`;
+			isPairedElement.id = `sensor_${sensor.index}_isPaired`;
+			useEncryptionElement.id = `sensor_${sensor.index}_useEncryption`;
 			macInputElement.id = `mac_sensor_${sensor.index}`;
 			
 			// Update form action sensorIndex
@@ -80,8 +84,12 @@ function bodyLoaded()
 			const macForm = templateClone.querySelector('form[action="/set_mac_sensor"]');
 			macForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
-			const removeForm = templateClone.querySelector('form[action="/remove_data"]');
-			removeForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
+			const removeDataForm = templateClone.querySelector('form[action="/remove_data"]');
+			removeDataForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
+
+			const removeSensorForm = templateClone.querySelector('form[action="/remove_sensor"]');
+			removeSensorForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
+			removeSensorForm.style.display = sensor.isPaired ? 'inline-flex' : 'none';
 			
 			const downloadForm = templateClone.querySelector('form[action="/download_data"]');
 			downloadForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
@@ -104,6 +112,15 @@ function bodyLoaded()
 			modeSelectElement.value = sensor.mode;
 			numMsgElement.textContent = sensor.numMessages;
 			swVersionElement.textContent = sensor.swVersion;
+			
+			// Update Pairing and Encryption status
+			isPairedElement.textContent = sensor.isPaired ? 'link' : 'link_off';
+			isPairedElement.style.color = sensor.isPaired ? getSensorColor(sensor.index) : 'var(--error-color)';
+			isPairedElement.title = sensor.isPaired ? 'Sensor ist verbunden' : 'Sensor nicht verbunden';
+			useEncryptionElement.textContent = sensor.useEncryption ? 'lock' : 'lock_open';
+			useEncryptionElement.style.color = sensor.useEncryption ? getSensorColor(sensor.index) : 'var(--error-color)';
+			useEncryptionElement.title = sensor.useEncryption ? 'Verschlüsselung aktiv' : 'Keine Verschlüsselung';
+			
 			macInputElement.value = sensor.mac;
 			
 			// Store original MAC value for comparison

@@ -36,7 +36,7 @@
 								<i class="material-symbols-outlined">check</i>
 							</button>
 						</form>	
-						<h4><i class="material-symbols-outlined">tune</i> SENSOR MODUS</h4>
+						<h4><i class="material-symbols-outlined">tune</i> MODUS</h4>
 						<form action="/set_sensor_mode" method="GET">
 							<input type="hidden" name="sensorIndex" value="X">
 							<input type="hidden" id="sensor_X_mode_selectedIndex">
@@ -52,25 +52,7 @@
 						</form>
 						<br>
 						<h4><i class="material-symbols-outlined">chat_bubble</i> ANZAHL NACHRICHTEN</h4>
-						<p id="sensor_X_num_msg">%NUM_MESSAGES_X%</p>
-						<br>					
-						<h4><i class="material-symbols-outlined">update</i> SOFTWARE VERSION</h4>
-						<p id="sensor_X_sw_version">%SENSOR_SW_VERSION_X%</p>
-						<br>
-						<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
-						<form action="/set_mac_sensor" class="mac-form">
-							<input type="hidden" name="sensorIndex" value="X">
-							<div class="mac-input-group">
-								<input	class="input_sensor" required
-										id="sensor_X_mac"
-										name="mac"
-										type="text"
-										value="%MAC_SENSOR_X%"
-										placeholder="00:00:00:00:00:00"
-										pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
-								<button class="mac-confirm-button" type="submit" title="MAC Adresse übernehmen"><i class="material-symbols-outlined">check</i></button>
-							</div>
-						</form>
+						<p id="sensor_X_num_msg">...</p>
 						<br>
 						<h4><i class="material-symbols-outlined">database</i> DATEN VERWALTEN</h4>
 						<div class="sensor-data-buttons">
@@ -89,6 +71,32 @@
 								<button class="icon-button icon-button-delete" type="submit" title="Daten löschen"><i class="material-symbols-outlined">delete</i></button>
 							</form>
 						</div>
+						<hr>
+						<h4><i class="material-symbols-outlined">sensors</i> SENSOR INFO</h4>
+						<p><i class="material-symbols-outlined">update</i> <span id="sensor_X_sw_version">...</span></p>
+						<div class="sensor-status-indicators">
+							<i class="material-symbols-outlined" id="sensor_X_isPaired"></i>
+							<i class="material-symbols-outlined" id="sensor_X_useEncryption"></i>
+						</div>
+						<form action="/remove_sensor" method="post" onsubmit="return confirm('Soll der Sensor wirklich gelöscht werden?');" class="icon-button-form">
+							<input type="hidden" name="sensorIndex" value="X">
+							<button class="icon-button icon-button-delete" type="submit" title="Sensor löschen"><i class="material-symbols-outlined">link_off</i></button>
+						</form>
+						<br>
+						<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
+						<form action="/set_mac_sensor" class="mac-form">
+							<input type="hidden" name="sensorIndex" value="X">
+							<div class="mac-input-group">
+								<input	class="input_sensor" required
+										id="sensor_X_mac"
+										name="mac"
+										type="text"
+										value="%MAC_SENSOR_X%"
+										placeholder="00:00:00:00:00:00"
+										pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
+								<button class="mac-confirm-button" type="submit" title="MAC Adresse übernehmen"><i class="material-symbols-outlined">check</i></button>
+							</div>
+						</form>
 					</div>
 				</template>
 

@@ -32,6 +32,9 @@ let sensorNames = [];
 for (let i = 0; i < NUM_SUPPORTED_SENSORS; i++) {
     sensorNames.push(`Sensor ${(i + 1).toString()}`);
 }
+let sensorsPaired = new Array(NUM_SUPPORTED_SENSORS).fill(true);
+let sensorsEncrypted = new Array(NUM_SUPPORTED_SENSORS).fill(true);
+
 // Set specific modes for testing
 sensorModes[0] = SENSOR_MODE_CHARGING;
 sensorMACs[0] = "00:00:00:00:00:00";
@@ -236,7 +239,9 @@ app.get("/get_sensor_status", (req, res) =>
             // Management data
             mode: sensorModes[i],
             numMessages: getNumMessagesPerSensorFromBinFile(i),
-            swVersion: "v0.0"
+            swVersion: "v0.0",
+            isPaired: sensorsPaired[i],
+            useEncryption: sensorsEncrypted[i]
         };
         sensors.push(sensor);
     }
@@ -285,6 +290,7 @@ app.get("/set_mac_sensor", (req, res) =>
     const mac = req.query.mac;
 
     sensorMACs[sensorIndex] = mac;
+    sensorsPaired[sensorIndex] = true;
     res.redirect("/system_management.html");
 });
 
@@ -445,6 +451,19 @@ app.get("/get_pairing_info", (req, res) =>
         isPairingApActive: false
     };
     res.json(info);
+});
+
+// #########################################################################################
+
+app.post("/remove_sensor", (req, res) => 
+{
+    const sensorIndex = parseInt(req.body.sensorIndex);
+    
+    sensorMACs[sensorIndex] = "";
+    sensorsPaired[sensorIndex] = false;
+    sensorsEncrypted[sensorIndex] = false;
+
+    res.redirect("/system_management.html");
 });
 
 // #########################################################################################

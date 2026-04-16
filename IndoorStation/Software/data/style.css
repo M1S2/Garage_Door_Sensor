@@ -10,6 +10,12 @@ p
 	font-size: 1.2rem;
 }
 
+hr
+{
+	border: 0;
+	border-top: 2px solid var(--box-shadow-color);
+}
+
 i
 {
 	vertical-align: middle;
@@ -249,6 +255,18 @@ nav a.active
 	font-size: 1.2rem;
 	font-weight: bold;
 	text-align: center;
+}
+
+/* ----------------------------------------------------------------------------------------- */
+
+/* Status Indicators (Paired/Encrypted) */
+.sensor-status-indicators
+{
+	display: flex;
+	justify-content: center;
+	gap: 15px;
+	margin-top: 5px;
+	margin-bottom: 15px;
 }
 
 /* ----------------------------------------------------------------------------------------- */

@@ -509,7 +509,6 @@ void main_initWebserverEndpoints()
 
     // ----------------------------------
 
-    // Send a GET request to <ESP_IP>/download_data
     server.on("/download_data", HTTP_GET, [] (AsyncWebServerRequest *request)
     {
         int8_t sensorIndex = -1;
@@ -532,7 +531,6 @@ void main_initWebserverEndpoints()
 
     // ----------------------------------
 
-    // upload a file to /upload_data
     server.on("/upload_data", HTTP_POST, [](AsyncWebServerRequest *request)
     {
         /* Everything handled in onUpload() */
@@ -540,10 +538,8 @@ void main_initWebserverEndpoints()
 
     // ----------------------------------
 
-    // Send a GET request to <ESP_IP>/remove_data
     server.on("/remove_data", HTTP_POST, [] (AsyncWebServerRequest *request)
     {
-        String inputMessage;
         int8_t sensorIndex = -1;
         if(request->hasParam("sensorIndex", true))
         {
@@ -556,7 +552,6 @@ void main_initWebserverEndpoints()
 
     // ----------------------------------
 
-    // Send a GET request to <ESP_IP>/get_data
     server.on("/get_data", HTTP_GET, [] (AsyncWebServerRequest *request)
     {
         serverGetDataSensorIndex = -1;
@@ -651,7 +646,6 @@ void main_initWebserverEndpoints()
 
     // ----------------------------------
 
-    // Send a GET request to <ESP_IP>/set_sensor_mode
     server.on("/set_sensor_mode", HTTP_GET, [] (AsyncWebServerRequest *request)
     {
         int8_t sensorIndex = -1;
@@ -694,6 +688,29 @@ void main_initWebserverEndpoints()
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response);
+    });
+
+    // ----------------------------------
+
+    server.on("/remove_sensor", HTTP_POST, [] (AsyncWebServerRequest *request)
+    {
+        int8_t sensorIndex = -1;
+        if(request->hasParam("sensorIndex", true))
+        {
+            sensorIndex = request->getParam("sensorIndex", true)->value().toInt();
+        }
+
+        if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS)
+        {
+            main_removePeer(sysConfig.sensors[sensorIndex]);        // Remove the peer
+            memset(sysConfig.sensors[sensorIndex].mac, 0, sizeof(sysConfig.sensors[sensorIndex].mac));  // Clear the MAC address
+            sysConfig.sensors[sensorIndex].isPaired = false;
+            sysConfig.sensors[sensorIndex].useEncryption = false;
+            memory_saveSystemConfig(sysConfig);
+        }
+
+        updateLastSensorMessages();
+        request->redirect("/system_management.html");
     });
 }
 
@@ -810,7 +827,8 @@ void loop()
         #endif
         for(uint i = 0; i < NUM_SUPPORTED_SENSORS; i++)
         {  
-            if(received_mac_addr[0] == sysConfig.sensors[i].mac[0] && 
+            if(sysConfig.sensors[i].isPaired &&
+                received_mac_addr[0] == sysConfig.sensors[i].mac[0] && 
                 received_mac_addr[1] == sysConfig.sensors[i].mac[1] &&
                 received_mac_addr[2] == sysConfig.sensors[i].mac[2] &&
                 received_mac_addr[3] == sysConfig.sensors[i].mac[3] &&
