@@ -111,17 +111,23 @@ void messageReceived(uint8_t* mac_addr, uint8_t* data, uint8 len)
         magicNumber = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
     }
 
+    pairing_message_received = false;
+    sensor_message_received = false;
     if(magicNumber == PAIRING_MAGIC_NUMBER)
     {
-        memcpy(&pairing_message, data, sizeof(pairing_message));
-        pairing_message_received = true;
-        sensor_message_received = false;
+        if (len >= sizeof(pairing_message))
+        {
+            memcpy(&pairing_message, data, sizeof(pairing_message));
+            pairing_message_received = true;
+        }
     }
     else
     {
-        memcpy(&sensor_message, data, sizeof(sensor_message));
-        sensor_message_received = true;
-        pairing_message_received = false;
+        if (len >= sizeof(sensor_message))
+        {
+            memcpy(&sensor_message, data, sizeof(sensor_message));
+            sensor_message_received = true;
+        }
     }
 }
 
@@ -254,30 +260,45 @@ bool main_makeSureEncryptionKeysAreSetInSystemConfig(system_config_t& sysConfig)
 /**********************************************************************/
 
 /**
- * Add an (encrypted) peer with the given MAC address and LMK.
- * If a peer with the given MAC address already exists, it is deleted before adding the new peer.
- * This is important to ensure that the new LMK is used for the peer, especially if they have changed.
- * It is also important to only add a new peer with encryption in WIFI_STA mode.
- * @param sensorConfig The sensor config struct containing the MAC address and LMK for the peer.
- * @return true if the peer was added successfully, false otherwise.
+ * Remove an ESP-NOW peer if it exists.
+ * It is identified by the MAC address.
+ * @param sensorConfig The sensor config struct containing the MAC address for the peer.
+ * @return true if the peer was removed successfully (and existed), false otherwise (e.g. no peer existed).
  */
-bool main_addPeer(sensor_config_t& sensorConfig)
+bool main_removePeer(sensor_config_t& sensorConfig)
 {
-    // If the peer already exists → delete it (important for channel change!)
     if (esp_now_is_peer_exist((uint8_t*)sensorConfig.mac))
     {
         esp_now_del_peer((uint8_t*)sensorConfig.mac);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Add an encrypted peer with the given MAC address and LMK.
+ * If a peer with the given MAC address already exists, it is deleted before adding the new peer.
+ * This is important to ensure that the new LMK is used for the peer, especially if they have changed.
+ * It is also important to only add a new peer with encryption in WIFI_STA mode.
+ * Also not mix the use of esp_now_add_peer() for encrypted and unencrypted peers (seems to distract the ESP8266 encryption)  
+ * @param sensorConfig The sensor config struct containing the MAC address and LMK for the peer.
+ * @return true if the peer was added successfully, false otherwise.
+ */
+bool main_addEncryptedPeer(sensor_config_t& sensorConfig)
+{
+    if(!sensorConfig.useEncryption)
+    {
+        #ifdef DEBUG_OUTPUT
+            Serial.println("No peer added because encryption is disabled for this sensor!");
+        #endif
+        return false;
     }
 
+    // If the peer already exists → delete it (important for channel change!)
+    main_removePeer(sensorConfig);
+
     int result = -1;
-    if(sensorConfig.useEncryption)
-    {
-        result = esp_now_add_peer((uint8_t*)sensorConfig.mac, ESP_NOW_ROLE_SLAVE, 0, (uint8_t*)sensorConfig.lmk, ESPNOW_KEY_LEN);
-    }
-    else
-    {
-        result = esp_now_add_peer((uint8_t*)sensorConfig.mac, ESP_NOW_ROLE_SLAVE, 0, NULL, 0);
-    }
+    result = esp_now_add_peer((uint8_t*)sensorConfig.mac, ESP_NOW_ROLE_SLAVE, 0, (uint8_t*)sensorConfig.lmk, ESPNOW_KEY_LEN);
 
     #ifdef DEBUG_OUTPUT
         Serial.printf("addEncryptedPeer: %02X:%02X:%02X:%02X:%02X:%02X | ch=%d | res=%d\n", sensorConfig.mac[0], sensorConfig.mac[1], sensorConfig.mac[2], sensorConfig.mac[3], sensorConfig.mac[4], sensorConfig.mac[5], wiFiChannel, result);
@@ -476,10 +497,11 @@ void main_initWebserverEndpoints()
         if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS && !inputMessage.isEmpty())
         {
             utils_parseMac(inputMessage.c_str(), sysConfig.sensors[sensorIndex].mac);
-            sysConfig.sensors[sensorIndex].isPaired = true;   // If a MAC is set, we can assume that the sensor is paired.
+            sysConfig.sensors[sensorIndex].isPaired = true;         // If a MAC is set, we can assume that the sensor is paired.
+            sysConfig.sensors[sensorIndex].useEncryption = false;   // Encryption is based on exchanged keys. This is not possible by simply entering the MAC.
             memory_saveSystemConfig(sysConfig);
 
-            main_addPeer(sysConfig.sensors[sensorIndex]);
+            main_removePeer(sysConfig.sensors[sensorIndex]);        // Remove the peer (not needed for unencrypted communication)
         }
 
         request->redirect("/system_management.html");
@@ -754,9 +776,9 @@ void setup()
     for(int i = 0; i < NUM_SUPPORTED_SENSORS; i++)
     {
         sensor_config_t sensorConfig = sysConfig.sensors[i];
-        if(sensorConfig.isPaired)
+        if(sensorConfig.isPaired && sensorConfig.useEncryption)
         {
-            main_addPeer(sensorConfig);
+            main_addEncryptedPeer(sensorConfig);
         }
     }
 }
@@ -855,7 +877,7 @@ void loop()
 
                 pairing_disablePairingModeForSensor(sensorIndex);
 
-                main_addPeer(sysConfig.sensors[sensorIndex]);
+                main_addEncryptedPeer(sysConfig.sensors[sensorIndex]);
 
                 events.send("", SERVER_EVENT_SENSOR_PAIRED, millis());
                 break;
