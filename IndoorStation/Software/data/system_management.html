@@ -103,6 +103,12 @@
 				<!----------------------- SYSTEM INFO --------------------------------------------------------------------------------------->
 				<div class="card general">
 					<h2><i class="material-symbols-outlined">info</i> SYSTEM INFO</h2>
+					<h4><i class="material-symbols-outlined">battery_alert</i> BATTERIE WARNSCHWELLE</h4>
+					<div style="display: flex; align-items: center; gap: 15px; margin: 10px 30px 20px 30px;">
+						<input type="range" id="battery_threshold_slider" min="0" max="100">
+						<span style="min-width: 40px; font-weight: bold;"><span id="battery_threshold_val">X</span>%</span>
+					</div>
+					<br>
 					<h4><i class="material-symbols-outlined">update</i> SOFTWARE VERSION</h4>
 					<p id="indoor_station_sw_version">...</p>
 					<br>

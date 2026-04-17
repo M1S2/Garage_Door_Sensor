@@ -46,6 +46,7 @@ typedef struct system_config
 {
     sensor_config_t sensors[NUM_SUPPORTED_SENSORS];
     uint8_t pmk[ESPNOW_KEY_LEN] = {0};
+    uint8_t batteryEmptyThreshold_percent = 0; // Default value, will be set in main_setDefaultSystemConfig
 } system_config_t;
 
 #define MEMORY_PERSISTED_SYSTEM_CONFIG_MAGIC   0x53434647UL  // "SCFG"

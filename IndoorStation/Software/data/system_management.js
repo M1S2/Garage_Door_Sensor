@@ -120,7 +120,7 @@ function bodyLoaded()
 			useEncryptionElement.textContent = sensor.useEncryption ? 'lock' : 'lock_open';
 			useEncryptionElement.style.color = sensor.useEncryption ? getSensorColor(sensor.index) : 'var(--error-color)';
 			useEncryptionElement.title = sensor.useEncryption ? 'Verschlüsselung aktiv' : 'Keine Verschlüsselung';
-			
+
 			macInputElement.value = sensor.mac;
 			
 			// Store original MAC value for comparison
@@ -155,6 +155,18 @@ function bodyLoaded()
 	})
 	.catch(error => console.error('Error loading sensor management data:', error));
 
+	// Add events for the battery threshold slider
+	const batterySlider = document.getElementById('battery_threshold_slider');
+	const batteryValDisplay = document.getElementById('battery_threshold_val');
+	batterySlider.oninput = function(e)
+	{
+		batteryValDisplay.innerText = batterySlider.value;
+	};
+	batterySlider.onchange = function(e)
+	{
+		fetch('/set_battery_empty_threshold?threshold=' + batterySlider.value)
+	};
+
 	// Load indoor station info
 	fetch('/get_indoor_station_info')
 	.then(response => response.json())
@@ -162,6 +174,11 @@ function bodyLoaded()
 	{
 		document.getElementById("indoor_station_sw_version").textContent = data.swVersion;
 		document.getElementById("indoor_station_memory_usage").textContent = data.memoryUsage;
+		if(data.batteryEmptyThreshold !== undefined)
+		{
+			batterySlider.value = data.batteryEmptyThreshold;
+			batteryValDisplay.innerText = data.batteryEmptyThreshold;
+		}
 	})
 	.catch(error => console.error('Error loading indoor station info:', error));
 

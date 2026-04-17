@@ -22,6 +22,8 @@ const SENSOR_MODE_CHARGING = 2;         // All messages are ignored, nothing is 
 const SENSOR_MODE_ONLY_DISPLAY = 3;     // Messages are only displayed via the LED, nothing is saved
 const SENSOR_MODE_PAIRING = 4;          // Message from Indoor Station to corresponding sensor to configure the MAC address in the sensor, LED flashes red and blue, nothing is saved
 
+let batteryEmptyThreshold = 15;
+
 // Initialize arrays based on NUM_SUPPORTED_SENSORS
 let sensorModes = new Array(NUM_SUPPORTED_SENSORS).fill(SENSOR_MODE_NORMAL);
 let sensorMACs = [];
@@ -255,7 +257,8 @@ app.get("/get_indoor_station_info", (req, res) =>
     const info = {
         mac: "01:02:03:04:05:06",
         swVersion: "v0.0",
-        memoryUsage: "9.77 %"
+        memoryUsage: "9.77 %",
+        batteryEmptyThreshold: batteryEmptyThreshold
     };
     res.json(info);
 });
@@ -303,6 +306,18 @@ app.get("/set_sensor_name", (req, res) =>
 
     sensorNames[sensorIndex] = name;
     res.redirect("/system_management.html");
+});
+
+// #########################################################################################
+
+app.get("/set_battery_empty_threshold", (req, res) => 
+{
+    const threshold = parseInt(req.query.threshold);
+    if(threshold >= 0 && threshold <= 100) // Ensure threshold is a valid percentage
+    {
+        batteryEmptyThreshold = threshold;
+    }
+    res.send("OK");
 });
 
 // #########################################################################################

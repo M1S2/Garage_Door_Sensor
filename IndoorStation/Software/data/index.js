@@ -53,6 +53,15 @@ function getSensorModeContent(sensorMode)
 
 function bodyLoaded()
 {
+	let batteryEmptyThreshold = 15;
+
+	fetch('/get_indoor_station_info')
+	.then(response => response.json())
+	.then(infoData =>
+	{
+		batteryEmptyThreshold = infoData.batteryEmptyThreshold !== undefined ? infoData.batteryEmptyThreshold : 15;
+	});
+
 	fetch('/get_sensor_status')
 	.then(response => response.json())
 	.then(data =>
@@ -78,7 +87,7 @@ function bodyLoaded()
 			const statusElement = templateClone.querySelector('#sensor_X_status');
 			const batterySubTitleElement = templateClone.querySelector('#sensor_X_battery_subTitle');
 			const percentageElement = templateClone.querySelector('#sensor_X_percentage');
-			const voltageElement = templateClone.querySelector('#sensor_X_voltage');
+			const batteryWarningElement = templateClone.querySelector('#sensor_X_battery_warning');
 			const timestampElement = templateClone.querySelector('#sensor_X_timestamp');
 			const errorDivElement = templateClone.querySelector('#sensor_X_error');
 			const macElement = templateClone.querySelector('#sensor_X_mac');
@@ -86,7 +95,7 @@ function bodyLoaded()
 			nameElement.id = `sensor_${sensor.index}_name`;
 			statusElement.id = `sensor_${sensor.index}_status`;
 			percentageElement.id = `sensor_${sensor.index}_percentage`;
-			voltageElement.id = `sensor_${sensor.index}_voltage`;
+			batteryWarningElement.id = `sensor_${sensor.index}_battery_warning`;
 			timestampElement.id = `sensor_${sensor.index}_timestamp`;
 			errorDivElement.id = `sensor_${sensor.index}_error`;
 			macElement.id = `sensor_${sensor.index}_mac`;
@@ -107,7 +116,7 @@ function bodyLoaded()
 				statusElement.style.display = 'none';
 				batterySubTitleElement.style.display = 'none';
 				percentageElement.style.display = 'none';
-				voltageElement.style.display = 'none';
+				batteryWarningElement.style.display = 'none';
 				timestampElement.style.display = 'none';
 				errorDivElement.style.display = 'none';
 				macElement.style.display = 'none';
@@ -124,9 +133,12 @@ function bodyLoaded()
 				statusElement.textContent = sensor.state == SENSOR_PIN_STATE_OPEN ? "Auf" : "Zu";
 				percentageElement.innerHTML = `<span>${Number(sensor.percentage).toFixed(2)}</span> %`;
 				
-				const voltageV = (sensor.voltage_mV / 1000.0).toFixed(2);
-				voltageElement.innerHTML = `<span>${voltageV}</span> V`;
-				
+				// Show battery warning icon if percentage is below threshold
+				if (Number(sensor.percentage) < batteryEmptyThreshold)
+				{
+					batteryWarningElement.style.display = 'inline-block';
+				}
+
 				timestampElement.textContent = sensor.timestamp;
 				macElement.textContent = sensor.mac;
 				

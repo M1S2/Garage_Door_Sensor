@@ -3,8 +3,6 @@
 
 #include <Arduino.h>
 
-#define BATTERY_EMPTY_PERCENT   15              // If the battery level in percent falls under this level, the battery is regarded as empty
-
 /**
  * Convert the battery voltage in mV to an level in percent.
  * @param batteryVoltage_mV Measured voltage of the battery in mV.
@@ -14,10 +12,11 @@
 float battery_voltageToPercent(uint16_t batteryVoltage_mV, uint8_t numberFractionalDigits = 2);
 
 /**
- * Check if the battery is empty. It is regarded as empty, when the battery level in percent falls under BATTERY_EMPTY_PERCENT
+ * Check if the battery is empty. It is regarded as empty, when the battery level in percent falls under threshold_percent
  * @param batteryVoltage_V Measured voltage of the battery in mV.
- * @return True, if the battery level is below BATTERY_EMPTY_PERCENT; otherwise false.
+ * @param threshold_percent This is the threshold under which the battery is regarded as empty.
+ * @return True, if the battery level is below threshold_percent; otherwise false.
  */
-bool battery_isEmpty(uint16_t batteryVoltage_mV);
+bool battery_isEmpty(uint16_t batteryVoltage_mV, uint8_t threshold_percent);
 
 #endif

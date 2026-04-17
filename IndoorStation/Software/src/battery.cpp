@@ -56,8 +56,8 @@ float battery_voltageToPercent(uint16_t batteryVoltage_mV, uint8_t numberFractio
     return 0;       // If you get to this line, something with the lookup table seems to be wrong.
 }
 
-bool battery_isEmpty(uint16_t batteryVoltage_mV)
+bool battery_isEmpty(uint16_t batteryVoltage_mV, uint8_t threshold_percent)
 {
     uint8_t batteryLevel_percent = battery_voltageToPercent(batteryVoltage_mV);
-    return (batteryLevel_percent < BATTERY_EMPTY_PERCENT);
+    return (batteryLevel_percent < threshold_percent);
 }

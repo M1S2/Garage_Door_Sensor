@@ -70,7 +70,7 @@ void main_updateLeds_sensorStatus()
                 if(sensor_messages_latest[i].timestamp != -1)
                 {
                     bool isOpen = (sensor_messages_latest[i].msg.pinState == SENSOR_PIN_STATE_OPEN);
-                    leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_messages_latest[i].msg.batteryVoltage_mV));
+                    leds_sensorStatus(i, isOpen, battery_isEmpty(sensor_messages_latest[i].msg.batteryVoltage_mV, sysConfig.batteryEmptyThreshold_percent));
                 }
                 else
                 {
@@ -220,7 +220,8 @@ void main_setDefaultSystemConfig(system_config_t& sysConfig)
         sysConfig.sensors[i].useEncryption = false;
         memset(sysConfig.sensors[i].name, 0, sizeof(sysConfig.sensors[i].name));
     }
-    memset(sysConfig.pmk, 0, sizeof(sysConfig.pmk));  // set to all 0 to indicate that no PMK is set for this sensor. A valid PMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
+    memset(sysConfig.pmk, 0, sizeof(sysConfig.pmk));    // set to all 0 to indicate that no PMK is set for this sensor. A valid PMK must be generated (e.g. with main_makeSureEncryptionKeysAreSetInSystemConfig()).
+    sysConfig.batteryEmptyThreshold_percent = 15;       // Default to 15%
 }
 
 /**
@@ -435,6 +436,7 @@ void main_initWebserverEndpoints()
         //doc["mac"] = WiFi.macAddress();
         doc["swVersion"] = GARAGE_DOOR_INDOOR_STATION_SW_VERSION;
         doc["memoryUsage"] = memory_getMemoryUsageString(true);
+        doc["batteryEmptyThreshold"] = sysConfig.batteryEmptyThreshold_percent;
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response);
@@ -478,6 +480,26 @@ void main_initWebserverEndpoints()
         }
         request->redirect("/system_management.html");
     });
+
+    // ----------------------------------
+
+    server.on("/set_battery_empty_threshold", HTTP_GET, [] (AsyncWebServerRequest *request)
+    {
+        int8_t threshold = -1;
+        if(request->hasParam("threshold"))
+        {
+            threshold = request->getParam("threshold")->value().toInt();
+        }
+
+        if(threshold >= 0 && threshold <= 100) // Ensure threshold is a valid percentage
+        {
+            sysConfig.batteryEmptyThreshold_percent = threshold;
+            memory_saveSystemConfig(sysConfig);
+            main_updateLeds_sensorStatus();     // Update LEDs based on new threshold
+        }
+        request->send(200, "text/plain", "OK");
+    });
+
 
     // ----------------------------------
 
