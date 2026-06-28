@@ -84,19 +84,7 @@
 						</form>
 						<br>
 						<h4><i class="material-symbols-outlined">pin</i> MAC</h4>
-						<form action="/set_mac_sensor" class="mac-form">
-							<input type="hidden" name="sensorIndex" value="X">
-							<div class="mac-input-group">
-								<input	class="input_sensor" required
-										id="sensor_X_mac"
-										name="mac"
-										type="text"
-										value="%MAC_SENSOR_X%"
-										placeholder="00:00:00:00:00:00"
-										pattern="[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}">
-								<button class="mac-confirm-button" type="submit" title="MAC Adresse übernehmen"><i class="material-symbols-outlined">check</i></button>
-							</div>
-						</form>
+						<p id="sensor_X_mac_display"></p>
 					</div>
 				</template>
 

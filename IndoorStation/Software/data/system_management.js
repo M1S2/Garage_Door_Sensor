@@ -60,7 +60,7 @@ function bodyLoaded()
 			const swVersionElement = templateClone.querySelector('#sensor_X_sw_version');
 			const isPairedElement = templateClone.querySelector('#sensor_X_isPaired');
 			const useEncryptionElement = templateClone.querySelector('#sensor_X_useEncryption');
-			const macInputElement = templateClone.querySelector('#sensor_X_mac');
+			const macElement = templateClone.querySelector('#sensor_X_mac_display');
 			
 			titleElement.id = `sensor_${sensor.index}_title`;
 			nameElement.id = `sensor_${sensor.index}_name`;
@@ -72,7 +72,7 @@ function bodyLoaded()
 			swVersionElement.id = `sensor_${sensor.index}_sw_version`;
 			isPairedElement.id = `sensor_${sensor.index}_isPaired`;
 			useEncryptionElement.id = `sensor_${sensor.index}_useEncryption`;
-			macInputElement.id = `mac_sensor_${sensor.index}`;
+			macElement.id = `sensor_${sensor.index}_mac_display`;
 			
 			// Update form action sensorIndex
 			const nameForm = templateClone.querySelector('form[action="/set_sensor_name"]');
@@ -80,9 +80,6 @@ function bodyLoaded()
 
 			const modeForm = templateClone.querySelector('form[action="/set_sensor_mode"]');
 			modeForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
-			
-			const macForm = templateClone.querySelector('form[action="/set_mac_sensor"]');
-			macForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
 			
 			const removeDataForm = templateClone.querySelector('form[action="/remove_data"]');
 			removeDataForm.querySelector('input[name="sensorIndex"]').value = sensor.index;
@@ -121,30 +118,7 @@ function bodyLoaded()
 			useEncryptionElement.style.color = sensor.useEncryption ? getSensorColor(sensor.index) : 'var(--error-color)';
 			useEncryptionElement.title = sensor.useEncryption ? 'Verschlüsselung aktiv' : 'Keine Verschlüsselung';
 
-			macInputElement.value = sensor.mac;
-			
-			// Store original MAC value for comparison
-			macInputElement.setAttribute('data-original-mac', sensor.mac);
-			// Get the MAC confirm button and set it up
-			const macConfirmButton = macForm.querySelector('.mac-confirm-button');
-			// Initial state
-			updateMacButtonState(macInputElement, macConfirmButton);
-			
-			// Add MAC formatting and button state update on keyup
-			macInputElement.addEventListener('keyup', (e) =>
-			{
-				format_macs(e);
-				updateMacButtonState(macInputElement, macConfirmButton);
-			}, false);
-
-			// Update original MAC value after successful save
-			macForm.onsubmit = function(e)
-			{
-				macInputElement.setAttribute('data-original-mac', macInputElement.value);
-				updateMacButtonState(macInputElement, macConfirmButton);
-				submitMacMessage();
-				return true;
-			};
+			macElement.textContent = sensor.mac;
 
 			// Disable download button if no messages
 			downloadButton.disabled = Number(sensor.numMessages) === 0;
@@ -198,58 +172,6 @@ function updateSystemTime()
 		document.getElementById("indoor_station_time").textContent = timeString;
 	})
 	.catch(error => console.error('Error loading system time:', error));
-}
-
-// Function to update button state based on MAC match
-function updateMacButtonState(macInputElement, macConfirmButton)
-{
-	const currentMac = macInputElement.value;
-	const originalMac = macInputElement.getAttribute('data-original-mac');
-	const icon = macConfirmButton.querySelector('i');
-	
-	if (currentMac.toUpperCase() === originalMac.toUpperCase())
-	{
-		// MAC matches original - show check icon, hide button functionality
-		icon.textContent = 'check';
-		macConfirmButton.disabled = true;
-		macConfirmButton.style.opacity = '0.5';
-		macConfirmButton.title = 'MAC Adresse gespeichert';
-	}
-	else
-	{
-		// MAC differs - show save icon, enable button
-		icon.textContent = 'save';
-		macConfirmButton.disabled = false;
-		macConfirmButton.style.opacity = '1';
-		macConfirmButton.title = 'MAC Adresse speichern';
-	}
-}
-
-function submitMacMessage()
-{
-    alert("Neue MAC Adresse gespeichert.");
-    setTimeout(function(){ document.location.reload(false); }, 500);   
-}
-
-function format_macs(e)
-{ 
-	if(e.keyCode != 8)		// don't format on backspace (8 == backspace)
-	{
-		var mac = e.currentTarget.value;
-		var macs = mac.split('');
-		var colons = [2, 5, 8, 11, 14];
-		for (var col in colons)
-		{
-			if (colons[col] <= macs.length)
-			{
-				if (macs[colons[col]] !== ":")
-				{
-					macs.splice(colons[col], 0, ":");
-				}
-			}
-		}
-		e.currentTarget.value = macs.join('').substring(0,17);
-	}
 }
 
 function enableNameEdit(index)

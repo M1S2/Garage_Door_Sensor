@@ -500,35 +500,6 @@ void main_initWebserverEndpoints()
         request->send(200, "text/plain", "OK");
     });
 
-
-    // ----------------------------------
-
-    server.on("/set_mac_sensor", HTTP_GET, [] (AsyncWebServerRequest *request)
-    {
-        String inputMessage;
-        int8_t sensorIndex = -1;
-        if(request->hasParam("sensorIndex"))
-        {
-            sensorIndex = request->getParam("sensorIndex")->value().toInt();
-        }
-        if(request->hasParam("mac"))
-        {
-            inputMessage = request->getParam("mac")->value();
-        }
-
-        if(sensorIndex >= 0 && sensorIndex < NUM_SUPPORTED_SENSORS && !inputMessage.isEmpty())
-        {
-            utils_parseMac(inputMessage.c_str(), sysConfig.sensors[sensorIndex].mac);
-            sysConfig.sensors[sensorIndex].isPaired = true;         // If a MAC is set, we can assume that the sensor is paired.
-            sysConfig.sensors[sensorIndex].useEncryption = false;   // Encryption is based on exchanged keys. This is not possible by simply entering the MAC.
-            memory_saveSystemConfig(sysConfig);
-
-            main_removePeer(sysConfig.sensors[sensorIndex]);        // Remove the peer (not needed for unencrypted communication)
-        }
-
-        request->redirect("/system_management.html");
-    });
-
     // ----------------------------------
 
     server.on("/download_data", HTTP_GET, [] (AsyncWebServerRequest *request)

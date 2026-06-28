@@ -287,18 +287,6 @@ app.get("/set_sensor_mode", (req, res) =>
 
 // #########################################################################################
 
-app.get("/set_mac_sensor", (req, res) => 
-{
-    const sensorIndex = parseInt(req.query.sensorIndex);
-    const mac = req.query.mac;
-
-    sensorMACs[sensorIndex] = mac;
-    sensorsPaired[sensorIndex] = true;
-    res.redirect("/system_management.html");
-});
-
-// #########################################################################################
-
 app.get("/set_sensor_name", (req, res) => 
 {
     const sensorIndex = parseInt(req.query.sensorIndex);
