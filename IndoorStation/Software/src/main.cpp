@@ -887,6 +887,7 @@ void loop()
                 memory_saveSystemConfig(sysConfig);
 
                 pairing_disablePairingModeForSensor(sensorIndex);
+                main_updateLeds_sensorStatus();
 
                 main_addEncryptedPeer(sysConfig.sensors[sensorIndex]);
 
